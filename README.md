@@ -1,5 +1,7 @@
 # Campaign Video Performance Tracker
 
+[![Daily campaign video report](https://github.com/RonaldAllanRivera/performance-tracker/actions/workflows/daily.yml/badge.svg)](https://github.com/RonaldAllanRivera/performance-tracker/actions/workflows/daily.yml)
+
 Every morning at 09:00 Manila time — [both the time and the timezone are
 configurable](#scheduling) — this posts a plain-English summary of how every
 creator video in every live campaign performed yesterday, and flags the ones a
@@ -268,7 +270,10 @@ job itself is a single command, so it runs equally well as a systemd timer on
 the VPS if scheduling should not depend on GitHub. First things to monitor, in
 order:
 
-1. **Age of the last successful run.** Everything else is secondary.
+1. **Age of the last successful run.** Everything else is secondary. The badge
+   at the top of this README shows the last run's *result*, which is not the
+   same thing — a schedule that stops firing altogether leaves the badge green
+   and the digest silent.
 2. **The AI fallback rate.** The embed footer says which writer produced the
    summary; if it reads "template" for a week, the model calls are failing and
    the report still arrives every morning looking fine.
