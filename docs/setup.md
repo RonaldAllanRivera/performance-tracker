@@ -279,12 +279,21 @@ run the job on your machine and *not* enough for GitHub Actions — the schedule
 run will fail with a connection timeout while local runs keep working, which is
 a confusing way to find out.
 
-Go to **Database & Network Access → Network Access → Add IP Address**:
+**Where it lives** — this is not obvious, because it is a tab rather than a
+sidebar entry:
 
-- Local testing: **Add Current IP Address** (already done if you left the
-  automation ticked).
-- GitHub Actions: add **`0.0.0.0/0`** ("Allow access from anywhere"). Runners
-  have no fixed IPs, so there is no narrower option short of hosting your own.
+1. Close the "Connect to Cluster0" dialog first (**Done**).
+2. Left sidebar, under **SECURITY**, click **Database & Network Access**.
+3. On that page, select the **Network Access** tab.
+4. **+ ADD IP ADDRESS**.
+
+Then:
+
+- Local testing: **ADD CURRENT IP ADDRESS** — already done for you if you left
+  *Automate security setup* ticked.
+- GitHub Actions: **ALLOW ACCESS FROM ANYWHERE**, which fills in `0.0.0.0/0`.
+  Runners have no fixed IPs, so there is no narrower option short of hosting
+  your own runner.
 
 > Know what you're accepting: the database is then reachable from any IP, and
 > the username and password are the only thing protecting it. Use the generated
@@ -305,12 +314,16 @@ Go to **Database & Network Access → Network Access → Add IP Address**:
    mongodb+srv://<username>:<db_password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
    ```
 
-3. Replace the username and password placeholders with the ones from 5b,
-   **deleting the angle brackets** along with the placeholder text.
-4. Put it in `.env`:
+3. **Copy it before closing the dialog** — Atlas fills the real password in
+   here (with *Show Password* on) and will not show it again.
+4. Note that the **username is still a placeholder** (`<db_username>`) even
+   though the password is filled in. Find the real one on **Database & Network
+   Access → Database Access**, then replace it — **deleting the angle brackets**
+   along with the placeholder text.
+5. Put it in `.env`:
 
    ```
-   MONGO_URI=mongodb+srv://tracker:REPLACE_WITH_YOUR_PASSWORD@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
+   MONGO_URI=mongodb+srv://YOUR_USER:YOUR_PASSWORD@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
    MONGO_DB=campaign_tracker
    ```
 
