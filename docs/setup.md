@@ -495,21 +495,36 @@ re-running the same day updates rather than duplicates.
 2. **Settings → Secrets and variables → Actions → New repository secret.**
 3. Add one secret per value, using **exactly these names**:
 
-   | Secret | Value |
-   |---|---|
-   | `SHEET_ID` | same as in `.env` |
-   | `GOOGLE_SERVICE_ACCOUNT_JSON` | **open the `.json` key file and paste the whole thing**, newlines and all |
-   | `YOUTUBE_API_KEY` | same as in `.env` |
-   | `MONGO_URI` | same as in `.env` |
-   | `DISCORD_WEBHOOK_URL` | same as in `.env` |
-   | `OPENAI_API_KEY` | *(optional)* same as in `.env` |
+   The **Name** field accepts letters, digits and underscores only. Copy these
+   exactly — no backticks, no quotes, no spaces:
+
+   ```
+   SHEET_ID
+   GOOGLE_SERVICE_ACCOUNT_JSON
+   YOUTUBE_API_KEY
+   MONGO_URI
+   DISCORD_WEBHOOK_URL
+   OPENAI_API_KEY
+   ```
+
+   What goes in the **Secret** box for each:
+
+   - `SHEET_ID`, `YOUTUBE_API_KEY`, `MONGO_URI`, `DISCORD_WEBHOOK_URL` — the
+     same values as in your `.env`.
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` — **open the `.json` key file and paste the
+     whole thing**, newlines and all. GitHub accepts multi-line secrets, so no
+     encoding is needed. This is the CI counterpart of
+     `GOOGLE_SERVICE_ACCOUNT_FILE`, which has no meaning on a runner.
+   - `OPENAI_API_KEY` — optional. Without it the digest uses the template.
 
    GitHub secrets accept multi-line values, so the key needs no encoding — just
    paste the file. `GOOGLE_SERVICE_ACCOUNT_FILE` is local-only and has no
    equivalent here, because a runner has no file to point at.
 
-4. `TIMEZONE` is not secret, so set it under the **Variables** tab instead (or
-   leave it — it defaults to `Asia/Manila`).
+4. `TIMEZONE`, `MONGO_DB` and `OPENAI_MODEL` are **not** secrets. The workflow
+   supplies sensible defaults (`Asia/Manila`, `campaign_tracker`,
+   `gpt-4o-mini`), so you can skip them entirely. To override one, add it under
+   the **Variables** tab — not Secrets.
 5. Go to the **Actions** tab → **Daily campaign video report** → **Run
    workflow**. This triggers a run by hand so you can confirm it works without
    waiting until tomorrow morning.
