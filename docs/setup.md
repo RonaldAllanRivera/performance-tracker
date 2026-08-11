@@ -197,11 +197,48 @@ base64 -w0 ~/Downloads/your-key-file.json     # Linux
 base64 -i  ~/Downloads/your-key-file.json     # macOS
 ```
 
-Copy the single-line output into `.env`:
+**Either form is accepted** — the job looks at the first character and decides:
+a value starting with `{` is read as JSON, anything else is base64-decoded. So
+your `.env` line looks like *one* of these:
 
+```bash
+# If you used jq — starts with a brace, contains quotes and braces:
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"<...>",...}
+
+# If you used base64 — one unbroken run of letters and digits, ~3,100 chars:
+GOOGLE_SERVICE_ACCOUNT_JSON=<one long line of base64, no quotes, no spaces>
 ```
-GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"..."}
+
+**Prefer base64.** It contains no quotes, braces, or spaces for a shell or an
+editor to mangle, and it is the form least likely to get corrupted in transit.
+
+Safest way to get it in — this never shows the key on your screen, so it can't
+end up in a screenshot, a scrollback buffer, or pasted into a chat:
+
+```bash
+printf 'GOOGLE_SERVICE_ACCOUNT_JSON=%s\n' "$(base64 -w0 ~/Downloads/<your-key-file>.json)" >> .env
 ```
+
+Then check it arrived intact — this prints only the account email, never the key:
+
+```bash
+sed -n 's/^GOOGLE_SERVICE_ACCOUNT_JSON=//p' .env \
+  | base64 -d \
+  | python3 -c 'import json,sys; print("OK:", json.load(sys.stdin)["client_email"])'
+```
+
+> Use `sed` here, not `awk -F=`. Base64 padding is `=`, so splitting the line on
+> `=` chops the last character off the value — `base64 -d` then prints
+> `invalid input` and may silently lose the final bytes.
+
+If that prints `OK: campaign-tracker@...`, you're done. If it errors, the value
+was truncated — copying a 3,000-character line through a terminal window is the
+usual cause, which is why the `printf` above avoids it entirely.
+
+> **If a key is ever exposed** — pasted into a chat, committed, screenshotted —
+> delete it in **IAM & Admin → Service Accounts → Keys** *before* creating a
+> replacement. Deleting is what revokes it. A new key on the same service
+> account inherits the existing sheet share, so nothing else needs redoing.
 
 > **Why this matters:** the key contains a private key whose line breaks are
 > encoded as `\n`. Pasting the raw multi-line file, or splitting the fields into
