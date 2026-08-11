@@ -172,8 +172,9 @@ reads from row 2 down.
 1. Click the service account → **Keys** tab → **Add key** → **Create new key**.
 2. Choose **JSON** → **Create**. A `.json` file downloads.
 3. **Treat this file like a password.** Anyone holding it can read anything the
-   account can read. Never commit it — `.gitignore` already blocks the common
-   filenames, but the safest thing is to delete it once it's in `.env`.
+   account can read. Never commit it — `.gitignore` blocks the common filenames,
+   and step 4e moves it out of the repo entirely. Keep the file: the recommended
+   setup reads the key from it rather than from a copy of its contents.
 
 ### 4d. Share the sheet with the service account ⚠️
 
@@ -186,111 +187,74 @@ reads from row 2 down.
 4. Set it to **Viewer** (it never needs to write).
 5. Untick "Notify people" → **Share**.
 
-### 4e. Get the key into `.env`
+### 4e. Tell `.env` where the key is
 
-### The easy way: point at the file
+There are two ways. **Do A now.** B is only needed later, for GitHub Actions.
 
-Move the key somewhere stable, outside the repo so it can never be committed,
-and tell `.env` where it is. Nothing gets copied, so nothing can be truncated:
+#### A — point at the file (this is all you need locally)
+
+Move the key out of `~/Downloads`, where it is easy to lose or delete:
 
 ```bash
-mkdir -p ~/.config/campaign-tracker && chmod 700 ~/.config/campaign-tracker
+mkdir -p ~/.config/campaign-tracker
 mv ~/Downloads/your-key-file.json ~/.config/campaign-tracker/service-account.json
 chmod 600 ~/.config/campaign-tracker/service-account.json
 ```
 
-Then in `.env`:
+Add one line to `.env`:
 
 ```
 GOOGLE_SERVICE_ACCOUNT_FILE=~/.config/campaign-tracker/service-account.json
 ```
 
-That is all you need locally — skip to step 5. `~` is expanded for you, and if
-the path is wrong the error names the exact path it tried.
+That's it. Nothing gets copied, so nothing can be truncated. The `~` is expanded
+for you, and a wrong path produces an error naming the exact path it tried.
 
-### The inline way (required for GitHub Actions)
+Now go to **step 5**.
 
-A CI runner has no file to point at, so the key has to travel as a value there.
-You will need this for step 9 even if you use the file locally.
+#### B — paste the contents (GitHub Actions only)
 
-The downloaded file is pretty-printed across many lines, and a `.env` value has
-to be on **one line**. The private key inside it contains line breaks encoded as
-`\n`; pasting the raw multi-line file, or splitting the fields into separate
-variables, mangles those and produces a signature error that looks nothing like
-the actual problem. So convert the whole file to a single line.
+A CI runner has no file to point at, so there the key has to travel as a value.
+You will need this at step 9. It is not needed to run the job on your machine.
 
-Point a variable at your key file first — **edit this line**, then every command
-below can be pasted as-is:
+<details>
+<summary>Show me how to produce the value</summary>
 
-```bash
-KEY=~/Downloads/your-key-file.json    # <- change to your actual filename
-
-# ...or let the shell find the newest key you downloaded:
-KEY=$(ls -t ~/Downloads/*service*account*.json ~/Downloads/*-*-*.json 2>/dev/null | head -1)
-echo "using: $KEY"          # always check this is the file you expect
-```
-
-Then either:
+The downloaded file is pretty-printed across many lines and a `.env` value must
+be on one line, so convert it. Point a variable at the file first — **edit this
+line**, then the rest can be pasted as-is:
 
 ```bash
-# Option A — base64. RECOMMENDED.
-# This single command covers Linux AND macOS. There is no separate
-# per-OS version -- it replaces the base64 -w0 / base64 -i split.
-base64 "$KEY" | tr -d '\n'
-
-# Option B — minify to one line (needs jq)
-jq -c . "$KEY"
+KEY=~/.config/campaign-tracker/service-account.json
 ```
 
-> **If you've seen `base64 -w0` (Linux) or `base64 -i` (macOS) elsewhere, the
-> command above replaces both.** `-w0` tells GNU base64 not to wrap output at 76
-> characters; `tr -d '\n'` removes the wrapping afterwards instead. The output is
-> byte-for-byte identical, and it runs on either OS. `-w0` is GNU-only and `-i`
-> is BSD-only, which is why neither is used here.
-
-**Either form is accepted** — the job looks at the first character and decides:
-a value starting with `{` is read as JSON, anything else is base64-decoded. So
-your `.env` line looks like *one* of these:
-
-```bash
-# If you used jq — starts with a brace, contains quotes and braces:
-GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"<...>",...}
-
-# If you used base64 — one unbroken run of letters and digits, ~3,100 chars:
-GOOGLE_SERVICE_ACCOUNT_JSON=<one long line of base64, no quotes, no spaces>
-```
-
-**Prefer base64.** It contains no quotes, braces, or spaces for a shell or an
-editor to mangle, and it is the form least likely to get corrupted in transit.
-
-Safest way to get it in — this never shows the key on your screen, so it can't
-end up in a screenshot, a scrollback buffer, or pasted into a chat:
+Write it straight into `.env`. This never shows the key on screen, which is the
+whole point — a copied key is a truncated key:
 
 ```bash
 printf 'GOOGLE_SERVICE_ACCOUNT_JSON=%s\n' "$(base64 "$KEY" | tr -d '\n')" >> .env
 ```
 
-Then check it arrived intact — this prints only the account email, never the key:
+Check it arrived intact. This prints only the account email, never the key:
 
 ```bash
-sed -n 's/^GOOGLE_SERVICE_ACCOUNT_JSON=//p' .env \
-  | base64 --decode \
-  | python3 -c 'import json,sys; print("OK:", json.load(sys.stdin)["client_email"])'
+npm run check:env
 ```
 
-> Two details that bite here. Use `sed`, not `awk -F=`: base64 padding is `=`,
-> so splitting the line on `=` chops the last character off the value and
-> `base64` then reports `invalid input`. And use `--decode` rather than `-d`,
-> which is GNU-only — macOS spells it `-D`, but both accept `--decode`.
+> Do not copy the base64 out of your terminal and paste it in by hand. It is
+> ~3,200 characters, terminal copies of that length routinely come up short, and
+> a value cut one character early looks perfect right up to the point it fails.
+> I truncated it three times before adding option A.
 
-If that prints `OK: campaign-tracker@...`, you're done. If it errors, the value
-was truncated — copying a 3,000-character line through a terminal window is the
-usual cause, which is why the `printf` above avoids it entirely.
+> `base64 -w0` (Linux) and `base64 -i` (macOS) both work, but neither is
+> portable; `base64 "$KEY" | tr -d '\n'` gives byte-identical output on either.
+
+</details>
 
 > **If a key is ever exposed** — pasted into a chat, committed, screenshotted —
-> delete it in **IAM & Admin → Service Accounts → Keys** *before* creating a
-> replacement. Deleting is what revokes it. A new key on the same service
-> account inherits the existing sheet share, so nothing else needs redoing.
+> delete it under **IAM & Admin → Service Accounts → Keys** *before* creating a
+> replacement. Deleting is what revokes it. A new key on the same service account
+> inherits the existing sheet share, so nothing else needs redoing.
 
 ---
 
