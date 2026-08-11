@@ -1,0 +1,49 @@
+name: Daily campaign video report
+
+on:
+  schedule:
+    # GitHub cron is always UTC. 01:00 UTC = 09:00 Asia/Manila, so the report
+    # is waiting when the team starts. The job derives its own dates in Manila
+    # time regardless of the runner clock -- see src/config.ts.
+    #
+    # NOTE: GitHub disables scheduled workflows in repositories that go quiet
+    # for 60 days. If the digest stops arriving, check that before debugging
+    # anything in this repo -- and see the "silent failure" note in the README.
+    - cron: '0 1 * * *'
+  workflow_dispatch: # lets anyone trigger a run by hand from the Actions tab
+
+concurrency:
+  # A slow run must never overlap the next day's. Snapshots are idempotent, so
+  # an overlap would not corrupt data, but it would post the report twice.
+  group: daily-campaign-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 400ms, and it means we never post numbers produced by broken logic.
+      - name: Verify the analysis logic before trusting it
+        run: npm test
+
+      - name: Run the daily pipeline
+        run: npm run job
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # Optional: absent means the digest falls back to the template writer.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
