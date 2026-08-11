@@ -4,6 +4,7 @@
 # the template is the single explicit exception.
 .env*
 !.env.example
+.env.github.actions
 
 # Google service-account keys. The job reads the JSON from an env var, so a key
 # file should never be in the tree at all -- these patterns are a safety net.
