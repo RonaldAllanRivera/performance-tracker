@@ -199,20 +199,29 @@ below can be pasted as-is:
 
 ```bash
 KEY=~/Downloads/your-key-file.json    # <- change to your actual filename
+
+# ...or let the shell find the newest key you downloaded:
+KEY=$(ls -t ~/Downloads/*service*account*.json ~/Downloads/*-*-*.json 2>/dev/null | head -1)
+echo "using: $KEY"          # always check this is the file you expect
 ```
 
 Then either:
 
 ```bash
-# Option A — base64. Recommended, and identical on Linux and macOS.
+# Option A — base64. RECOMMENDED.
+# This single command covers Linux AND macOS. There is no separate
+# per-OS version -- it replaces the base64 -w0 / base64 -i split.
 base64 "$KEY" | tr -d '\n'
 
 # Option B — minify to one line (needs jq)
 jq -c . "$KEY"
 ```
 
-> `base64 -w0` is GNU-only and `base64 -i` is macOS-only; piping through
-> `tr -d '\n'` strips the line wrapping on either platform.
+> **If you've seen `base64 -w0` (Linux) or `base64 -i` (macOS) elsewhere, the
+> command above replaces both.** `-w0` tells GNU base64 not to wrap output at 76
+> characters; `tr -d '\n'` removes the wrapping afterwards instead. The output is
+> byte-for-byte identical, and it runs on either OS. `-w0` is GNU-only and `-i`
+> is BSD-only, which is why neither is used here.
 
 **Either form is accepted** — the job looks at the first character and decides:
 a value starting with `{` is read as JSON, anything else is base64-decoded. So
