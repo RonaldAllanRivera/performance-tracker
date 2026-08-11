@@ -128,12 +128,11 @@ npm run typecheck
 
 ### Running it for real
 
-1. **Create the tracking sheet.** One tab named `Tracked`, with this header row:
-
-   | video_url | campaign | creator | added_by | notes |
-   |---|---|---|---|---|
-
-   Ops adds a row per video. Nothing else is required of them.
+1. **Create the tracking sheet.** Import [`docs/Tracked.csv`](docs/Tracked.csv)
+   into a new Google Sheet via **File → Import → Insert new sheet(s)**; the tab
+   lands named `Tracked`, which is the range the job reads. Ops adds a row per
+   video from then on — video URL, campaign, creator — and nothing else is
+   asked of them.
 
 2. **Set up credentials.** `cp .env.example .env` and fill it in.
    **[`docs/setup.md`](docs/setup.md) is a click-by-click walkthrough** of all
@@ -258,7 +257,12 @@ contract. Everything else would have needed mocking into meaninglessness.
 
 ## Running this in production
 
-Secrets would move out of Actions into whatever the company already uses. The
+Secrets would move out of Actions into whatever the company already uses, and
+I'd add automated secret scanning to CI — a placeholder connection string in
+these docs was enough to trip GitGuardian, which is exactly the sort of alert
+that gets muted if it fires on things that aren't real. Examples in the setup
+guide are now structurally invalid so a scanner can tell them apart from the
+real thing. The
 job itself is a single command, so it runs equally well as a systemd timer on
 the VPS if scheduling should not depend on GitHub. First things to monitor, in
 order:

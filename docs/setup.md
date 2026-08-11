@@ -4,6 +4,9 @@ Written assuming you have never touched Google Cloud, MongoDB Atlas, or Discord
 webhooks before. Every step says what to click, what you should see, and what
 goes wrong if you skip it.
 
+> Every value shown in this guide is a placeholder in `<angle-brackets>`.
+> Replace the brackets and their contents; don't paste any example verbatim.
+
 **Time needed:** about 30 minutes.
 **You need:** a Google account, a Discord server you can administer, and a
 GitHub account.
@@ -84,7 +87,7 @@ You should now see both listed under **APIs & Services → Enabled APIs**.
 3. A key appears in a popup. Copy it into `.env`:
 
    ```
-   YOUTUBE_API_KEY=AIzaSy...
+   YOUTUBE_API_KEY=<paste-your-key-here>
    ```
 
 4. **Recommended:** click **Edit API key** in that popup (or the pencil icon in
@@ -106,17 +109,37 @@ with it** exactly like you'd share with a colleague.
 
 ### 4a. Create the tracking sheet
 
+The repo ships a ready-made template: **[`docs/Tracked.csv`](Tracked.csv)**.
+
 1. Go to **https://sheets.google.com** and create a new spreadsheet.
-2. Name the tab at the bottom **`Tracked`** (double-click the tab to rename).
-   The name must match exactly — the job reads the range `Tracked!A2:E`.
-3. Put these headers in row 1:
+2. **File → Import → Upload**, and drop in `docs/Tracked.csv`.
+3. For "Import location" choose **Insert new sheet(s)** → **Import data**.
 
-   | A | B | C | D | E |
-   |---|---|---|---|---|
-   | video_url | campaign | creator | added_by | notes |
+   > The file is called `Tracked.csv` on purpose: Google names the new tab after
+   > the file, so you end up with a tab named exactly `Tracked` — which is the
+   > range the job reads (`Tracked!A2:E`). If you rename the file before
+   > importing, rename the tab back to `Tracked` afterwards, or nothing will be
+   > found.
 
-4. Add a real YouTube link in row 2 so there's something to fetch.
-5. Copy the **sheet ID** out of the browser address bar. In
+4. Delete the leftover empty `Sheet1` tab.
+5. The template contains two example rows, flagged in the `notes` column. Leave
+   them for a first smoke test, then replace them with your real campaign
+   videos. Ops adds one row per video from here on; nothing else is asked of
+   them.
+
+<details>
+<summary>Prefer to do it by hand?</summary>
+
+Create a tab named exactly `Tracked` and put these headers in row 1. Column
+order matters; the header text is for humans and is skipped by the job, which
+reads from row 2 down.
+
+| A | B | C | D | E |
+|---|---|---|---|---|
+| video_url | campaign | creator | added_by | notes |
+
+</details>
+6. Copy the **sheet ID** out of the browser address bar. In
 
    ```
    https://docs.google.com/spreadsheets/d/1a2B3cD4eF5gH6iJ7kL8mN9oP/edit#gid=0
@@ -126,7 +149,7 @@ with it** exactly like you'd share with a colleague.
    the ID is `1a2B3cD4eF5gH6iJ7kL8mN9oP`. Put it in `.env`:
 
    ```
-   SHEET_ID=1a2B3cD4eF5gH6iJ7kL8mN9oP
+   SHEET_ID=<the-id-from-your-sheet-url>
    ```
 
 ### 4b. Create the service account
@@ -227,7 +250,7 @@ Go to **Network Access** → **Add IP Address**.
 2. Copy the string. It looks like:
 
    ```
-   mongodb+srv://<username>:<password>@cluster0.abc12.mongodb.net/?retryWrites=true&w=majority
+   mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
    ```
 
 3. Replace `<username>` and `<password>` with the ones you just made — including
@@ -242,7 +265,7 @@ Go to **Network Access** → **Add IP Address**.
 4. Put it in `.env`:
 
    ```
-   MONGO_URI=mongodb+srv://tracker:s3cret@cluster0.abc12.mongodb.net/?retryWrites=true&w=majority
+   MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
    MONGO_DB=campaign_tracker
    ```
 
@@ -263,7 +286,7 @@ Webhooks** permission on the server.
 5. **Copy Webhook URL** and put it in `.env`:
 
    ```
-   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/123456789/abcdef...
+   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/<webhook-id>/<webhook-token>
    ```
 
 > Anyone with this URL can post into that channel. It's not a read credential,
@@ -284,7 +307,7 @@ writer it used in the Discord footer.
 4. Put it in `.env`:
 
    ```
-   OPENAI_API_KEY=sk-...
+   OPENAI_API_KEY=<your-openai-key>
    OPENAI_MODEL=gpt-4o-mini
    ```
 
