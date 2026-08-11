@@ -221,10 +221,20 @@ for you, and a wrong path produces an error naming the exact path it tried.
 
 The free tier is permanently free and far more than enough.
 
-1. Go to **https://www.mongodb.com/cloud/atlas/register** and sign up.
-2. When asked to deploy, choose the **M0 / Free** tier. Any provider and region
-   is fine — pick one near you.
-3. Click **Create Deployment**.
+1. Go to **https://www.mongodb.com/cloud/atlas/register** — sign up, or sign in
+   if you already have an account.
+2. **If Atlas shows you a "Create a Project" screen, create one.** Name it
+   `campaign-video-tracker` and skip the tags. Projects cost nothing and keep
+   this separate from anything else in your account. A brand-new signup is put
+   into a default project automatically and won't see this screen.
+3. Inside the project, **Create** / **Build a Database** → choose the
+   **M0 / Free** tier. Any provider and region is fine — pick one near you.
+4. Click **Create Deployment**.
+
+   > Atlas allows one M0 free cluster per project. If the free option is
+   > unavailable because you already have one, just reuse an existing cluster —
+   > the job creates its own `campaign_tracker` database and touches nothing
+   > else, so sharing a cluster with unrelated work is fine.
 
 ### Create a database user
 
