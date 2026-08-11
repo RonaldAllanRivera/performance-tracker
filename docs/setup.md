@@ -4,8 +4,9 @@ Written assuming you have never touched Google Cloud, MongoDB Atlas, or Discord
 webhooks before. Every step says what to click, what you should see, and what
 goes wrong if you skip it.
 
-> Every value shown in this guide is a placeholder in `<angle-brackets>`.
-> Replace the brackets and their contents; don't paste any example verbatim.
+> Every **credential** in this guide is a placeholder in `<angle-brackets>` —
+> replace the brackets and their contents, and never paste one verbatim.
+> Shell commands set a `KEY=...` variable first; edit that line, not the command.
 
 **Time needed:** about 30 minutes.
 **You need:** a Google account, a Discord server you can administer, and a
@@ -17,14 +18,15 @@ GitHub account.
 
 ## What you're collecting
 
-| # | Variable | What it's for |
+| Step | Variable | What it's for |
 |---|---|---|
 | 1 | `TIMEZONE` | Which day a run is recorded against. Just text — no signup. |
-| 2 | `YOUTUBE_API_KEY` | Reading view counts |
-| 3 | `SHEET_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON` | Reading the tracking sheet |
-| 4 | `MONGO_URI` | Storing daily snapshots |
-| 5 | `DISCORD_WEBHOOK_URL` | Posting the report |
-| 6 | `OPENAI_API_KEY` | *Optional.* Nicer prose. Everything works without it. |
+| 2 | *(none — Google Cloud project)* | Prerequisite for steps 3 and 4 |
+| 3 | `YOUTUBE_API_KEY` | Reading view counts |
+| 4 | `SHEET_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON` | Reading the tracking sheet |
+| 5 | `MONGO_URI` | Storing daily snapshots |
+| 6 | `DISCORD_WEBHOOK_URL` | Posting the report |
+| 7 | `OPENAI_API_KEY` | *Optional.* Nicer prose. Everything works without it. |
 
 Start by copying the template:
 
@@ -55,7 +57,7 @@ conversion table in its comments.
 
 ---
 
-## 2. Google Cloud project (needed for steps 2 and 3)
+## 2. Google Cloud project (needed for steps 3 and 4)
 
 Both the YouTube key and the Sheets access live inside a Google Cloud *project*.
 You make one project and use it for both.
@@ -127,8 +129,21 @@ The repo ships a ready-made template: **[`docs/Tracked.csv`](Tracked.csv)**.
    videos. Ops adds one row per video from here on; nothing else is asked of
    them.
 
+6. Copy **your** sheet's ID out of the browser address bar. In this example URL
+
+   ```
+   https://docs.google.com/spreadsheets/d/1a2B3cD4eF5gH6iJ7kL8mN9oP/edit#gid=0
+                                          └────────── this part ──────────┘
+   ```
+
+   the ID is `1a2B3cD4eF5gH6iJ7kL8mN9oP`. Yours will differ — put it in `.env`:
+
+   ```
+   SHEET_ID=<the-id-from-your-sheet-url>
+   ```
+
 <details>
-<summary>Prefer to do it by hand?</summary>
+<summary>Prefer to set the sheet up by hand?</summary>
 
 Create a tab named exactly `Tracked` and put these headers in row 1. Column
 order matters; the header text is for humans and is skipped by the job, which
@@ -139,18 +154,6 @@ reads from row 2 down.
 | video_url | campaign | creator | added_by | notes |
 
 </details>
-6. Copy the **sheet ID** out of the browser address bar. In
-
-   ```
-   https://docs.google.com/spreadsheets/d/1a2B3cD4eF5gH6iJ7kL8mN9oP/edit#gid=0
-                                          └────────── this part ──────────┘
-   ```
-
-   the ID is `1a2B3cD4eF5gH6iJ7kL8mN9oP`. Put it in `.env`:
-
-   ```
-   SHEET_ID=<the-id-from-your-sheet-url>
-   ```
 
 ### 4b. Create the service account
 
@@ -185,17 +188,31 @@ reads from row 2 down.
 
 ### 4e. Get the key into `.env`
 
-The downloaded file is pretty-printed across many lines. A `.env` value has to
-be on **one line**, so convert it. Either works:
+The downloaded file is pretty-printed across many lines, and a `.env` value has
+to be on **one line**. The private key inside it contains line breaks encoded as
+`\n`; pasting the raw multi-line file, or splitting the fields into separate
+variables, mangles those and produces a signature error that looks nothing like
+the actual problem. So convert the whole file to a single line.
+
+Point a variable at your key file first — **edit this line**, then every command
+below can be pasted as-is:
 
 ```bash
-# Option A — minify to one line (needs jq)
-jq -c . ~/Downloads/your-key-file.json
-
-# Option B — base64 (no extra tools; the job accepts either)
-base64 -w0 ~/Downloads/your-key-file.json     # Linux
-base64 -i  ~/Downloads/your-key-file.json     # macOS
+KEY=~/Downloads/your-key-file.json    # <- change to your actual filename
 ```
+
+Then either:
+
+```bash
+# Option A — base64. Recommended, and identical on Linux and macOS.
+base64 "$KEY" | tr -d '\n'
+
+# Option B — minify to one line (needs jq)
+jq -c . "$KEY"
+```
+
+> `base64 -w0` is GNU-only and `base64 -i` is macOS-only; piping through
+> `tr -d '\n'` strips the line wrapping on either platform.
 
 **Either form is accepted** — the job looks at the first character and decides:
 a value starting with `{` is read as JSON, anything else is base64-decoded. So
@@ -216,20 +233,21 @@ Safest way to get it in — this never shows the key on your screen, so it can't
 end up in a screenshot, a scrollback buffer, or pasted into a chat:
 
 ```bash
-printf 'GOOGLE_SERVICE_ACCOUNT_JSON=%s\n' "$(base64 -w0 ~/Downloads/<your-key-file>.json)" >> .env
+printf 'GOOGLE_SERVICE_ACCOUNT_JSON=%s\n' "$(base64 "$KEY" | tr -d '\n')" >> .env
 ```
 
 Then check it arrived intact — this prints only the account email, never the key:
 
 ```bash
 sed -n 's/^GOOGLE_SERVICE_ACCOUNT_JSON=//p' .env \
-  | base64 -d \
+  | base64 --decode \
   | python3 -c 'import json,sys; print("OK:", json.load(sys.stdin)["client_email"])'
 ```
 
-> Use `sed` here, not `awk -F=`. Base64 padding is `=`, so splitting the line on
-> `=` chops the last character off the value — `base64 -d` then prints
-> `invalid input` and may silently lose the final bytes.
+> Two details that bite here. Use `sed`, not `awk -F=`: base64 padding is `=`,
+> so splitting the line on `=` chops the last character off the value and
+> `base64` then reports `invalid input`. And use `--decode` rather than `-d`,
+> which is GNU-only — macOS spells it `-D`, but both accept `--decode`.
 
 If that prints `OK: campaign-tracker@...`, you're done. If it errors, the value
 was truncated — copying a 3,000-character line through a terminal window is the
@@ -239,11 +257,6 @@ usual cause, which is why the `printf` above avoids it entirely.
 > delete it in **IAM & Admin → Service Accounts → Keys** *before* creating a
 > replacement. Deleting is what revokes it. A new key on the same service
 > account inherits the existing sheet share, so nothing else needs redoing.
-
-> **Why this matters:** the key contains a private key whose line breaks are
-> encoded as `\n`. Pasting the raw multi-line file, or splitting the fields into
-> separate variables, mangles those breaks and produces a signature error that
-> looks nothing like the actual problem.
 
 ---
 
@@ -290,8 +303,8 @@ Go to **Network Access** → **Add IP Address**.
    mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
    ```
 
-3. Replace `<username>` and `<password>` with the ones you just made — including
-   the angle brackets.
+3. Replace `<username>` and `<password>` with the ones you just made, deleting
+   the angle brackets along with the placeholder text.
 
    ⚠️ **If your password contains `@ : / ? # [ ] %` you must URL-encode it**, or
    the connection string parses wrongly and you get a confusing auth error.
