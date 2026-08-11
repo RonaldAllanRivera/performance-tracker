@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 
 /**
  * Configuration and the run mode.
@@ -68,6 +70,13 @@ export interface Config {
   dryRun: boolean;
   timezone: string;
   sheetId: string;
+  /**
+   * Path to the service-account key file. Preferred locally: it removes any
+   * need to move a 3,000-character credential through a terminal, which is a
+   * reliable way to truncate it. Null in CI, where there is no file.
+   */
+  googleServiceAccountFile: string | null;
+  /** The key inline, as JSON or base64. Used when no file path is given. */
   googleServiceAccountJson: string;
   youtubeApiKey: string;
   mongoUri: string;
@@ -97,6 +106,7 @@ export function loadConfig(): Config {
       dryRun: true,
       timezone: TIMEZONE,
       sheetId: '(dry-run)',
+      googleServiceAccountFile: null,
       googleServiceAccountJson: '(dry-run)',
       youtubeApiKey: '(dry-run)',
       mongoUri: '(dry-run)',
@@ -108,11 +118,21 @@ export function loadConfig(): Config {
   }
 
   const missing: string[] = [];
+
+  // Either form is fine, but one of them has to be there. A file path is the
+  // easier option locally; CI has no file, so it sets the inline variable.
+  const serviceAccountFile = expandHome(process.env.GOOGLE_SERVICE_ACCOUNT_FILE);
+  const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim() ?? '';
+  if (!serviceAccountFile && !serviceAccountJson) {
+    missing.push('GOOGLE_SERVICE_ACCOUNT_FILE (or GOOGLE_SERVICE_ACCOUNT_JSON)');
+  }
+
   const config: Config = {
     dryRun: false,
     timezone: TIMEZONE,
     sheetId: required('SHEET_ID', missing),
-    googleServiceAccountJson: required('GOOGLE_SERVICE_ACCOUNT_JSON', missing),
+    googleServiceAccountFile: serviceAccountFile,
+    googleServiceAccountJson: serviceAccountJson,
     youtubeApiKey: required('YOUTUBE_API_KEY', missing),
     mongoUri: required('MONGO_URI', missing),
     mongoDb: process.env.MONGO_DB?.trim() || 'campaign_tracker',
@@ -131,6 +151,19 @@ export function loadConfig(): Config {
   }
 
   return config;
+}
+
+/**
+ * Expand a leading `~` and make the path absolute.
+ *
+ * dotenv does no shell expansion, so `~/Downloads/key.json` in a .env arrives
+ * as a literal tilde and fails to open with a confusing ENOENT.
+ */
+function expandHome(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  const expanded = value.startsWith('~/') ? value.replace('~', homedir()) : value;
+  return resolve(expanded);
 }
 
 /**

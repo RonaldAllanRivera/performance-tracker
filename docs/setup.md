@@ -23,7 +23,7 @@ GitHub account.
 | 1 | `TIMEZONE` | Which day a run is recorded against. Just text — no signup. |
 | 2 | *(none — Google Cloud project)* | Prerequisite for steps 3 and 4 |
 | 3 | `YOUTUBE_API_KEY` | Reading view counts |
-| 4 | `SHEET_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON` | Reading the tracking sheet |
+| 4 | `SHEET_ID` + service-account key | Reading the tracking sheet |
 | 5 | `MONGO_URI` | Storing daily snapshots |
 | 6 | `DISCORD_WEBHOOK_URL` | Posting the report |
 | 7 | `OPENAI_API_KEY` | *Optional.* Nicer prose. Everything works without it. |
@@ -187,6 +187,31 @@ reads from row 2 down.
 5. Untick "Notify people" → **Share**.
 
 ### 4e. Get the key into `.env`
+
+### The easy way: point at the file
+
+Move the key somewhere stable, outside the repo so it can never be committed,
+and tell `.env` where it is. Nothing gets copied, so nothing can be truncated:
+
+```bash
+mkdir -p ~/.config/campaign-tracker && chmod 700 ~/.config/campaign-tracker
+mv ~/Downloads/your-key-file.json ~/.config/campaign-tracker/service-account.json
+chmod 600 ~/.config/campaign-tracker/service-account.json
+```
+
+Then in `.env`:
+
+```
+GOOGLE_SERVICE_ACCOUNT_FILE=~/.config/campaign-tracker/service-account.json
+```
+
+That is all you need locally — skip to step 5. `~` is expanded for you, and if
+the path is wrong the error names the exact path it tried.
+
+### The inline way (required for GitHub Actions)
+
+A CI runner has no file to point at, so the key has to travel as a value there.
+You will need this for step 9 even if you use the file locally.
 
 The downloaded file is pretty-printed across many lines, and a `.env` value has
 to be on **one line**. The private key inside it contains line breaks encoded as
@@ -419,7 +444,8 @@ re-running the same day updates rather than duplicates.
 | `Missing required environment variable(s): ...` | `.env` isn't filled in, or you're in the wrong directory. |
 | `TIMEZONE="PHT" is not a valid IANA timezone name` | Use the full name, `Asia/Manila`. |
 | Sheets returns **403** | You didn't share the sheet with the service account email (step 4d). This is the most common failure by a wide margin. |
-| `GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON` | It's still multi-line. Minify or base64 it (step 4e). |
+| `... did not contain valid JSON` | Usually a truncated copy. Use `GOOGLE_SERVICE_ACCOUNT_FILE` instead — see step 4e. |
+| `Could not read GOOGLE_SERVICE_ACCOUNT_FILE at ...` | The path is wrong. The message names the exact path it tried. |
 | `error:1E08010C` or a signature/decoder error | The private key's line breaks got mangled. Re-do step 4e; prefer base64. |
 | Sheets returns **404** | Wrong `SHEET_ID`, or the tab isn't named `Tracked`. |
 | YouTube returns **403 accessNotConfigured** | The YouTube Data API v3 isn't enabled on this project, or the key is restricted to a different API. |

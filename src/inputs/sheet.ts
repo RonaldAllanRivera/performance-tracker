@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { JWT } from 'google-auth-library';
 import type { Config } from '../config.js';
 import { logger } from '../log.js';
@@ -93,7 +94,7 @@ export function parseRows(rows: string[][]): TrackedVideoSet {
 
 /** Fetch and parse the tracking sheet. */
 export async function readTrackedVideos(config: Config): Promise<TrackedVideoSet> {
-  const client = buildClient(config.googleServiceAccountJson);
+  const client = buildClient(config);
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(config.sheetId)}` +
     `/values/${encodeURIComponent(RANGE)}?majorDimension=ROWS`;
@@ -108,17 +109,39 @@ export async function readTrackedVideos(config: Config): Promise<TrackedVideoSet
 }
 
 /**
+ * Get the raw key, from a file if one is configured.
+ *
+ * PREFER THE FILE LOCALLY. The inline form requires moving a ~3,200-character
+ * credential through a terminal, and a copy that stops one character early
+ * produces a key that is structurally perfect right up to the point where it
+ * fails. I truncated it three times before adding this. CI still uses the
+ * inline variable, because a runner has no file to point at.
+ */
+function readCredentials(config: Config): string {
+  if (!config.googleServiceAccountFile) return config.googleServiceAccountJson;
+  try {
+    return readFileSync(config.googleServiceAccountFile, 'utf8');
+  } catch (error) {
+    throw new Error(
+      `Could not read GOOGLE_SERVICE_ACCOUNT_FILE at ${config.googleServiceAccountFile}: ` +
+        `${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
  * Build an authenticated client from a service-account key.
  *
- * SETUP FOOTGUN, DOCUMENTED HERE BECAUSE IT WILL COST YOU AN HOUR OTHERWISE:
- * the downloaded key is pretty-printed JSON with real newlines inside
- * `private_key`. It cannot go into a .env file as-is. Either minify it
- * (`jq -c . key.json`) or base64 it (`base64 -w0 key.json`) -- both are
- * accepted below. Splitting the key into separate env vars is the version
- * that breaks, because the PEM newlines get mangled on the way through.
+ * Accepts raw JSON or base64: the downloaded file is pretty-printed with real
+ * newlines inside `private_key`, so it cannot go into a .env as-is. Splitting
+ * the fields into separate env vars is the version that breaks, because the
+ * PEM newlines get mangled on the way through.
  */
-function buildClient(rawCredentials: string): JWT {
-  const trimmed = rawCredentials.trim();
+function buildClient(config: Config): JWT {
+  const source = config.googleServiceAccountFile
+    ? `GOOGLE_SERVICE_ACCOUNT_FILE (${config.googleServiceAccountFile})`
+    : 'GOOGLE_SERVICE_ACCOUNT_JSON';
+  const trimmed = readCredentials(config).trim();
   const json = trimmed.startsWith('{') ? trimmed : Buffer.from(trimmed, 'base64').toString('utf8');
 
   let parsed: { client_email?: string; private_key?: string };
@@ -126,13 +149,14 @@ function buildClient(rawCredentials: string): JWT {
     parsed = JSON.parse(json) as typeof parsed;
   } catch {
     throw new Error(
-      'GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON. Provide the whole service-account key file, ' +
-        'either minified onto one line (`jq -c . key.json`) or base64-encoded (`base64 -w0 key.json`).',
+      `${source} did not contain valid JSON. Provide the whole service-account key file. ` +
+        'The usual cause is a truncated copy: the value must be the complete file, so prefer ' +
+        'GOOGLE_SERVICE_ACCOUNT_FILE pointing at the .json rather than pasting its contents.',
     );
   }
 
   if (!parsed.client_email || !parsed.private_key) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is missing client_email or private_key.');
+    throw new Error(`${source} is missing client_email or private_key.`);
   }
 
   return new JWT({
