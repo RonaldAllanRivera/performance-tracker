@@ -10,6 +10,7 @@
   "scripts": {
     "job": "tsx src/job.ts",
     "job:dry": "tsx src/job.ts --dry-run",
+    "check:env": "tsx scripts/check-env.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

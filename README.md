@@ -124,6 +124,7 @@ be rejected.
 ```bash
 npm test          # 44 tests
 npm run typecheck
+npm run check:env # validates .env offline once you have credentials
 ```
 
 ### Running it for real

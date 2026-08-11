@@ -401,6 +401,17 @@ At one run a day this costs a fraction of a cent per month.
 
 ## 8. Test it locally
 
+Check your `.env` before making any live calls. This validates the shape of
+every credential offline — no network, no writes — and never prints a secret,
+so it is safe to run on a shared screen:
+
+```bash
+npm run check:env
+```
+
+It reports on every variable rather than stopping at the first problem, and
+names exactly what is wrong. When it says *Ready to run*:
+
 ```bash
 npm run job
 ```
