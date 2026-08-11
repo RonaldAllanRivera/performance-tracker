@@ -551,4 +551,5 @@ re-running the same day updates rather than duplicates.
 | Discord returns **404** | The webhook was deleted, or the URL is truncated. |
 | No **Integrations** tab on the channel | You lack *Manage Webhooks* on that server. Create your own server (step 6b) and use a channel there. |
 | Report arrives but the footer says "template" | The OpenAI key is missing, invalid, or out of credit. Everything else is fine. |
+| Actions run fails with `Missing required environment variable(s)` while local runs work | The credentials were added under the **Variables** tab. The workflow reads `secrets.*` for all six, so a variable of the same name resolves to empty. Move them to **Secrets**, and delete the variable copies — variables are unencrypted and are not masked in logs. |
 | Scheduled run never fires | GitHub disables schedules in repos inactive for 60 days. Push a commit and re-enable in the Actions tab. |
