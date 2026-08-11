@@ -314,13 +314,23 @@ Go to **Database & Network Access → Network Access → Add IP Address**:
    MONGO_DB=campaign_tracker
    ```
 
-**About `MONGO_DB`:** that is a name you choose, not something Atlas gives you.
-Leave it as `campaign_tracker`. Note the connection string has no database name
-in it — the `/?` is correct, and the job uses `MONGO_DB` to pick the database.
-If you do leave a database name in the URI, `MONGO_DB` wins.
+> **You only copy `MONGO_URI` from Atlas. `MONGO_DB` is not in Atlas anywhere —
+> leave it as `campaign_tracker`.**
+>
+> It is a name *you* choose. Don't go looking for it in the UI and don't change
+> it to match something you see there.
 
-You don't need to create the database, the collection, or the index. The job
-creates all three on its first run.
+**Why it isn't there yet:** MongoDB has no "create database" step. Databases and
+collections spring into existence on first write, which is why your new cluster
+reports `Data Size: 0 B` and shows nothing under **Data Explorer**. The job
+creates the `campaign_tracker` database, the `snapshots` collection, and the
+unique index the first time you run it. After that, Data Explorer will show them.
+
+Two related things that look wrong but aren't:
+
+- The connection string ends `/?retryWrites=...` with no database name between
+  the `/` and the `?`. That is correct — `MONGO_DB` selects the database.
+- If you *do* leave a database name in the URI, `MONGO_DB` takes precedence.
 
 ### 5e. Check it
 
