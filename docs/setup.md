@@ -9,8 +9,8 @@ goes wrong if you skip it.
 > Shell commands set a `KEY=...` variable first; edit that line, not the command.
 
 **Time needed:** about 30 minutes.
-**You need:** a Google account, a Discord server you can administer, and a
-GitHub account.
+**You need:** a Google account and a GitHub account. Discord is covered from
+scratch in step 6 — you don't need an account or a server beforehand.
 
 > **You do not need any of this to see the tool work.** `npm install && npm run
 > job:dry` runs the whole pipeline on fixture data with no credentials at all.
@@ -375,21 +375,69 @@ above and any leftover `<angle-brackets>` — without connecting to anything.
 
 ## 6. `DISCORD_WEBHOOK_URL`
 
-A webhook is a URL that posts into one specific channel. You need **Manage
-Webhooks** permission on the server.
+Where the daily report gets posted. A **webhook** is just a URL that posts a
+message into one specific channel — no bot, no app to install, no OAuth.
 
-1. In Discord, find the channel you want the report in (e.g. `#campaign-reports`).
-2. Hover the channel → **⚙️ Edit Channel** → **Integrations**.
-3. **Webhooks** → **New Webhook**.
-4. Name doesn't matter — the job overrides it with "Campaign Tracker".
-5. **Copy Webhook URL** and put it in `.env`:
+Everything below is free and takes about five minutes. **You do not need an
+existing Discord account or server** — this walks through creating both. In a
+real deployment you'd point this at the company's own channel instead; a
+personal server is fine for testing and for a portfolio submission.
+
+### 6a. Get a Discord account
+
+Skip to 6b if you already have one.
+
+1. Go to **https://discord.com/register**.
+2. Fill in email, username, and password, and confirm your date of birth.
+3. **Check your inbox and click the verification link.** Discord blocks some
+   actions until the address is verified.
+
+You can do all of this in a browser at **https://discord.com/app** — there is no
+need to install the desktop client.
+
+### 6b. Create a server
+
+A "server" in Discord is just a private space. Yours can have exactly one member.
+
+1. In the far-left sidebar, click the **`+`** button (*Add a Server*).
+2. **Create My Own** → **For me and my friends**.
+3. Name it something like `Campaign Tracker` → **Create**.
+
+You now have a server with a `#general` text channel.
+
+### 6c. Make a channel for the reports (optional)
+
+`#general` works, but a dedicated channel keeps the digest out of the way.
+
+1. Hover **TEXT CHANNELS** in the channel list → click the **`+`**.
+2. Name it `campaign-reports` → **Create Channel**.
+
+### 6d. Create the webhook
+
+1. Hover the channel you want the report in → click the **⚙️ gear** (*Edit
+   Channel*).
+2. **Integrations** in the left panel of that settings page.
+3. **Webhooks** → **New Webhook** (or **Create Webhook** if it is the first).
+4. Click the webhook that appears, then **Copy Webhook URL**.
+
+   The name and avatar there don't matter — the job overrides them with
+   "Campaign Tracker".
+
+5. Put it in `.env`:
 
    ```
    DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/<webhook-id>/<webhook-token>
    ```
 
-> Anyone with this URL can post into that channel. It's not a read credential,
-> but keep it out of public places.
+> Anyone holding this URL can post into that channel. It grants no read access
+> and can't do anything else, but keep it out of public repositories — it is a
+> credential, which is why it lives in `.env` and in GitHub Secrets rather than
+> in the code.
+
+**If you don't see Integrations or Webhooks:** you need *Manage Webhooks* on the
+channel. On a server you created yourself you are the owner and always have it.
+On someone else's server, ask an admin — or make your own server for testing and
+switch the URL later.
 
 ---
 
@@ -484,5 +532,6 @@ re-running the same day updates rather than duplicates.
 | Mongo `Authentication failed` | Wrong password, or it contains characters needing URL-encoding (step 5). |
 | Mongo connection times out | The IP isn't allowlisted under Network Access. Actions needs `0.0.0.0/0`. |
 | Discord returns **404** | The webhook was deleted, or the URL is truncated. |
+| No **Integrations** tab on the channel | You lack *Manage Webhooks* on that server. Create your own server (step 6b) and use a channel there. |
 | Report arrives but the footer says "template" | The OpenAI key is missing, invalid, or out of credit. Everything else is fine. |
 | Scheduled run never fires | GitHub disables schedules in repos inactive for 60 days. Push a commit and re-enable in the Actions tab. |
