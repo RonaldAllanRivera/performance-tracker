@@ -189,10 +189,6 @@ reads from row 2 down.
 
 ### 4e. Tell `.env` where the key is
 
-There are two ways. **Do A now.** B is only needed later, for GitHub Actions.
-
-#### A — point at the file (this is all you need locally)
-
 Move the key out of `~/Downloads`, where it is easy to lose or delete:
 
 ```bash
@@ -207,49 +203,12 @@ Add one line to `.env`:
 GOOGLE_SERVICE_ACCOUNT_FILE=~/.config/campaign-tracker/service-account.json
 ```
 
-That's it. Nothing gets copied, so nothing can be truncated. The `~` is expanded
+That's it — nothing is copied, so nothing can be truncated. The `~` is expanded
 for you, and a wrong path produces an error naming the exact path it tried.
 
-Now go to **step 5**.
-
-#### B — paste the contents (GitHub Actions only)
-
-A CI runner has no file to point at, so there the key has to travel as a value.
-You will need this at step 9. It is not needed to run the job on your machine.
-
-<details>
-<summary>Show me how to produce the value</summary>
-
-The downloaded file is pretty-printed across many lines and a `.env` value must
-be on one line, so convert it. Point a variable at the file first — **edit this
-line**, then the rest can be pasted as-is:
-
-```bash
-KEY=~/.config/campaign-tracker/service-account.json
-```
-
-Write it straight into `.env`. This never shows the key on screen, which is the
-whole point — a copied key is a truncated key:
-
-```bash
-printf 'GOOGLE_SERVICE_ACCOUNT_JSON=%s\n' "$(base64 "$KEY" | tr -d '\n')" >> .env
-```
-
-Check it arrived intact. This prints only the account email, never the key:
-
-```bash
-npm run check:env
-```
-
-> Do not copy the base64 out of your terminal and paste it in by hand. It is
-> ~3,200 characters, terminal copies of that length routinely come up short, and
-> a value cut one character early looks perfect right up to the point it fails.
-> I truncated it three times before adding option A.
-
-> `base64 -w0` (Linux) and `base64 -i` (macOS) both work, but neither is
-> portable; `base64 "$KEY" | tr -d '\n'` gives byte-identical output on either.
-
-</details>
+> GitHub Actions can't use a file path, so step 9 sets a `GOOGLE_SERVICE_ACCOUNT_JSON`
+> secret instead. That needs no preparation now: you paste the same file's
+> contents straight in when you get there.
 
 > **If a key is ever exposed** — pasted into a chat, committed, screenshotted —
 > delete it under **IAM & Admin → Service Accounts → Keys** *before* creating a
@@ -396,12 +355,18 @@ re-running the same day updates rather than duplicates.
 2. **Settings → Secrets and variables → Actions → New repository secret.**
 3. Add one secret per value, using **exactly these names**:
 
-   - `SHEET_ID`
-   - `GOOGLE_SERVICE_ACCOUNT_JSON`
-   - `YOUTUBE_API_KEY`
-   - `MONGO_URI`
-   - `DISCORD_WEBHOOK_URL`
-   - `OPENAI_API_KEY` *(optional)*
+   | Secret | Value |
+   |---|---|
+   | `SHEET_ID` | same as in `.env` |
+   | `GOOGLE_SERVICE_ACCOUNT_JSON` | **open the `.json` key file and paste the whole thing**, newlines and all |
+   | `YOUTUBE_API_KEY` | same as in `.env` |
+   | `MONGO_URI` | same as in `.env` |
+   | `DISCORD_WEBHOOK_URL` | same as in `.env` |
+   | `OPENAI_API_KEY` | *(optional)* same as in `.env` |
+
+   GitHub secrets accept multi-line values, so the key needs no encoding — just
+   paste the file. `GOOGLE_SERVICE_ACCOUNT_FILE` is local-only and has no
+   equivalent here, because a runner has no file to point at.
 
 4. `TIMEZONE` is not secret, so set it under the **Variables** tab instead (or
    leave it — it defaults to `Asia/Manila`).
@@ -421,7 +386,7 @@ re-running the same day updates rather than duplicates.
 | Sheets returns **403** | You didn't share the sheet with the service account email (step 4d). This is the most common failure by a wide margin. |
 | `... did not contain valid JSON` | Usually a truncated copy. Use `GOOGLE_SERVICE_ACCOUNT_FILE` instead — see step 4e. |
 | `Could not read GOOGLE_SERVICE_ACCOUNT_FILE at ...` | The path is wrong. The message names the exact path it tried. |
-| `error:1E08010C` or a signature/decoder error | The private key's line breaks got mangled. Re-do step 4e; prefer base64. |
+| `error:1E08010C` or a signature/decoder error | The private key's line breaks got mangled. Locally, use `GOOGLE_SERVICE_ACCOUNT_FILE` (step 4e). In Actions, re-paste the whole file into the secret. |
 | Sheets returns **404** | Wrong `SHEET_ID`, or the tab isn't named `Tracked`. |
 | YouTube returns **403 accessNotConfigured** | The YouTube Data API v3 isn't enabled on this project, or the key is restricted to a different API. |
 | Mongo `Authentication failed` | Wrong password, or it contains characters needing URL-encoding (step 5). |
