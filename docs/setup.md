@@ -232,7 +232,10 @@ more than enough — this writes a few hundred small documents a day.
    brand-new signup lands in a default project and won't see this screen.
 3. Inside the project: **Create** / **Build a Database** → **M0** (the free
    tier). Any provider is fine; pick the region nearest you.
-4. **Create Deployment.** Provisioning takes a couple of minutes.
+4. Leave **Automate security setup** ticked — it creates the database user and
+   allowlists your current IP in one go. Leave **Preload sample dataset**
+   unticked; this job creates its own data.
+5. **Create Deployment.** Provisioning takes a couple of minutes.
 
 > Atlas allows one M0 cluster per project. If the free tier is greyed out
 > because you already have one, reuse any existing cluster — the job creates its
@@ -241,14 +244,19 @@ more than enough — this writes a few hundred small documents a day.
 
 ### 5b. Create a database user
 
-Atlas prompts for this right after the cluster is created. If you skipped it, go
-to **Database Access** → **Add New Database User**.
+With **Automate security setup** ticked, Atlas does this for you in the
+"Connect to Cluster0" dialog that appears right after the cluster is created. It
+shows a username and a generated password on the first step.
 
-1. Authentication method: **Password**.
-2. Pick a username, then **Autogenerate Secure Password** and **copy it now** —
-   Atlas will not show it again.
-3. Privileges: **Read and write to any database**.
-4. **Create Database User**.
+**Copy that password before clicking on.** It is shown once.
+
+If you clicked past it — easy to do — you cannot retrieve it. Reset it instead:
+**Database & Network Access → Database Access → Edit → Edit Password →
+Autogenerate**, then **Update User**.
+
+Creating one from scratch, if you unticked the automation: **Add New Database
+User** → **Password** authentication → **Autogenerate Secure Password** →
+privileges **Read and write to any database** → **Add User**.
 
 > ⚠️ **Check the password before you move on.** If it contains any of
 > `@ : / ? # [ ] %`, click regenerate until it is letters and digits only.
@@ -266,12 +274,17 @@ to **Database Access** → **Add New Database User**.
 
 ### 5c. Allow network access
 
-**Network Access** → **Add IP Address**.
+**Automate security setup allowlists your current IP only.** That is enough to
+run the job on your machine and *not* enough for GitHub Actions — the scheduled
+run will fail with a connection timeout while local runs keep working, which is
+a confusing way to find out.
 
-- Local testing: **Add Current IP Address**.
-- GitHub Actions: also add **`0.0.0.0/0`** ("Allow access from anywhere").
-  Runners have no fixed IPs, so there is no narrower option short of hosting
-  your own runner.
+Go to **Database & Network Access → Network Access → Add IP Address**:
+
+- Local testing: **Add Current IP Address** (already done if you left the
+  automation ticked).
+- GitHub Actions: add **`0.0.0.0/0`** ("Allow access from anywhere"). Runners
+  have no fixed IPs, so there is no narrower option short of hosting your own.
 
 > Know what you're accepting: the database is then reachable from any IP, and
 > the username and password are the only thing protecting it. Use the generated
@@ -280,10 +293,13 @@ to **Database Access** → **Add New Database User**.
 
 ### 5d. Build the connection string
 
-1. On your cluster: **Connect** → **Drivers** → **Node.js**.
-2. Copy the string Atlas shows. It looks like this — the exact placeholder name
-   varies (`<password>` or `<db_password>`), and a trailing `&appName=...` is
-   fine to keep:
+1. In the "Connect to Cluster0" dialog, choose **Drivers** — the first option,
+   under "Connect to your application". Not Compass, not Shell. If you closed
+   the dialog, reopen it with **Connect** on the cluster.
+2. Driver **Node.js**, latest version. Copy the string under "Add your
+   connection string into your application code". It looks like this — the
+   placeholder name varies (`<password>` or `<db_password>`), and a trailing
+   `&appName=...` is fine to keep:
 
    ```
    mongodb+srv://<username>:<db_password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
