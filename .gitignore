@@ -1,0 +1,39 @@
+# --- Secrets: nothing below this line may ever be committed ---
+.env
+.env.*
+!.env.example
+
+# Google service-account keys. The job reads the JSON from an env var, so a key
+# file should never be in the tree at all -- these patterns are a safety net.
+*-service-account*.json
+service-account*.json
+gcp-*.json
+credentials.json
+*.pem
+
+# --- Private working documents (not part of the submission) ---
+# The job ad, the technical challenge brief, and my internal build plan.
+# This repo is shared with the reviewer; these do not belong in it.
+ad.md
+AI Systems Engineer Technical.md
+Campaign_Tracker_Build_Brief.md
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+
+# --- Build / tooling output ---
+dist/
+build/
+*.tsbuildinfo
+coverage/
+.vitest/
+
+# --- Editor / OS noise ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
