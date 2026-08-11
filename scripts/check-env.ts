@@ -35,6 +35,30 @@ function present(name: string): boolean {
   return false;
 }
 
+// dotenv treats an unquoted `#` as the start of a comment and silently drops
+// the rest of the line, so a value containing one arrives truncated and the
+// resulting error describes something else entirely. Comparing the raw file
+// against what was actually parsed is the only way to see this.
+section('.env hygiene');
+try {
+  const rawFile = readFileSync('.env', 'utf8');
+  let trouble = 0;
+  for (const line of rawFile.split('\n')) {
+    const match = /^([A-Z_][A-Z0-9_]*)=(.*)$/.exec(line);
+    if (!match) continue;
+    const name = match[1] ?? '';
+    const rawValue = (match[2] ?? '').trim();
+    if (!rawValue || rawValue.startsWith('"') || rawValue.startsWith("'")) continue;
+    if (rawValue.includes('#') && (process.env[name] ?? '').length < rawValue.length) {
+      trouble++;
+      fail(`${name} is cut short at a "#" — .env reads that as a comment. Wrap the value in double quotes, or regenerate it without a #`);
+    }
+  }
+  if (trouble === 0) pass('no values truncated by .env comment syntax');
+} catch {
+  warn('no .env file found — reading configuration from the environment instead');
+}
+
 section('Schedule');
 const timezone = env('TIMEZONE') || 'Asia/Manila';
 try {
@@ -123,16 +147,35 @@ if (present('YOUTUBE_API_KEY')) {
 }
 
 if (present('MONGO_URI')) {
-const mongo = env('MONGO_URI').match(/^mongodb(\+srv)?:\/\/(?:([^:]+):([^@]*)@)?(.+)$/);
-if (!mongo) fail('MONGO_URI is not a mongodb:// or mongodb+srv:// connection string');
-else {
-  pass(`MONGO_URI is a ${mongo[1] ? 'mongodb+srv' : 'mongodb'} connection string`);
-  const password = mongo[3] ?? '';
-  if (/[@:/?#[\]%]/.test(decodeURIComponent(password)) && !/%[0-9A-Fa-f]{2}/.test(password)) {
-    fail('the password contains characters that must be URL-encoded (@ : / ? # [ ] %) — this fails as a confusing auth error');
-  } else pass('password needs no URL-encoding');
-  if (/<|>/.test(env('MONGO_URI'))) fail('MONGO_URI still contains <angle-brackets> — replace the placeholders');
-}
+  const uri = env('MONGO_URI');
+  if (/<|>/.test(uri)) {
+    fail('MONGO_URI still contains <angle-brackets> — replace the placeholders and delete the brackets');
+  }
+  if (!/^mongodb(\+srv)?:\/\//.test(uri)) {
+    fail('MONGO_URI is not a mongodb:// or mongodb+srv:// connection string');
+  } else {
+    pass(`MONGO_URI is a ${uri.startsWith('mongodb+srv') ? 'mongodb+srv' : 'mongodb'} connection string`);
+
+    // Split on the LAST '@'. Splitting on the first would read the password
+    // "pa@ss" as "pa" and miss the very problem this check exists for.
+    const afterScheme = uri.replace(/^mongodb(\+srv)?:\/\//, '');
+    const at = afterScheme.lastIndexOf('@');
+    const credentials = at >= 0 ? afterScheme.slice(0, at) : '';
+    const host = at >= 0 ? afterScheme.slice(at + 1) : afterScheme;
+    const colon = credentials.indexOf(':');
+    const password = colon >= 0 ? credentials.slice(colon + 1) : '';
+
+    if (!credentials) {
+      warn('MONGO_URI has no username:password — Atlas clusters require them');
+    } else if (/[@:/?#[\]]/.test(password)) {
+      const offenders = [...new Set(password.match(/[@:/?#[\]]/g) ?? [])].join(' ');
+      fail(`the password contains ${offenders} which must be URL-encoded — this surfaces as a confusing auth error. Regenerating an alphanumeric password is easier`);
+    } else {
+      pass('password needs no URL-encoding');
+    }
+
+    if (!host.split(/[/?]/)[0]?.includes('.')) fail('MONGO_URI has no hostname after the @');
+  }
 }
 
 if (present('DISCORD_WEBHOOK_URL')) {

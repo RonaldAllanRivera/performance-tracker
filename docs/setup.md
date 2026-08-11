@@ -219,75 +219,101 @@ for you, and a wrong path produces an error naming the exact path it tried.
 
 ## 5. `MONGO_URI`
 
-The free tier is permanently free and far more than enough.
+Where the daily snapshots are stored. The free tier is permanently free and far
+more than enough — this writes a few hundred small documents a day.
+
+### 5a. Create the cluster
 
 1. Go to **https://www.mongodb.com/cloud/atlas/register** — sign up, or sign in
    if you already have an account.
-2. **If Atlas shows you a "Create a Project" screen, create one.** Name it
-   `campaign-video-tracker` and skip the tags. Projects cost nothing and keep
-   this separate from anything else in your account. A brand-new signup is put
-   into a default project automatically and won't see this screen.
-3. Inside the project, **Create** / **Build a Database** → choose the
-   **M0 / Free** tier. Any provider and region is fine — pick one near you.
-4. Click **Create Deployment**.
+2. **If Atlas shows a "Create a Project" screen, create one.** Name it
+   `campaign-video-tracker` and skip the tags and the member step. Projects cost
+   nothing and keep this separate from anything else in your account. A
+   brand-new signup lands in a default project and won't see this screen.
+3. Inside the project: **Create** / **Build a Database** → **M0** (the free
+   tier). Any provider is fine; pick the region nearest you.
+4. **Create Deployment.** Provisioning takes a couple of minutes.
 
-   > Atlas allows one M0 free cluster per project. If the free option is
-   > unavailable because you already have one, just reuse an existing cluster —
-   > the job creates its own `campaign_tracker` database and touches nothing
-   > else, so sharing a cluster with unrelated work is fine.
+> Atlas allows one M0 cluster per project. If the free tier is greyed out
+> because you already have one, reuse any existing cluster — the job creates its
+> own `campaign_tracker` database and touches nothing else, so sharing a cluster
+> with unrelated work is harmless.
 
-### Create a database user
+### 5b. Create a database user
 
-Atlas usually prompts for this immediately; otherwise go to **Database Access**
-→ **Add New Database User**.
+Atlas prompts for this right after the cluster is created. If you skipped it, go
+to **Database Access** → **Add New Database User**.
 
-1. Choose **Password** authentication.
-2. Pick a username and click **Autogenerate Secure Password** — then **copy the
-   password now**, you won't see it again.
-3. Under "Database User Privileges" choose **Read and write to any database**.
-4. **Add User**.
+1. Authentication method: **Password**.
+2. Pick a username, then **Autogenerate Secure Password** and **copy it now** —
+   Atlas will not show it again.
+3. Privileges: **Read and write to any database**.
+4. **Create Database User**.
 
-### Allow network access
+> ⚠️ **Check the password before you move on.** If it contains any of
+> `@ : / ? # [ ] %`, click regenerate until it is letters and digits only.
+> Two separate things go wrong otherwise, and neither error mentions the cause:
+>
+> - Those characters have meaning inside a connection string, so the URI parses
+>   wrongly and you get a bare authentication failure. You can URL-encode them
+>   (`@` → `%40`, `%` → `%25`) if you must.
+> - **A `#` is worse.** `.env` files treat an unquoted `#` as the start of a
+>   comment, so the value is silently cut off at that point before the app ever
+>   sees it. Wrapping the whole value in double quotes avoids this.
+>
+> Regenerating an alphanumeric password sidesteps both and takes five seconds.
+> `npm run check:env` detects both, including the truncation.
 
-Go to **Network Access** → **Add IP Address**.
+### 5c. Allow network access
 
-- For local testing: **Add Current IP Address**.
-- For GitHub Actions: you must also add **`0.0.0.0/0`** (Allow access from
-  anywhere). GitHub's runners have no fixed IPs, so there is no narrower option
-  short of running your own runner.
+**Network Access** → **Add IP Address**.
 
-> Be aware of what that means: the database is then reachable from any IP, and
-> your username and password are the only thing protecting it. Use the generated
-> password, don't reuse it anywhere, and rotate it if it ever leaks. On a real
-> production system I'd run this on a fixed-IP host instead.
+- Local testing: **Add Current IP Address**.
+- GitHub Actions: also add **`0.0.0.0/0`** ("Allow access from anywhere").
+  Runners have no fixed IPs, so there is no narrower option short of hosting
+  your own runner.
 
-### Build the connection string
+> Know what you're accepting: the database is then reachable from any IP, and
+> the username and password are the only thing protecting it. Use the generated
+> password, don't reuse it anywhere, and rotate it if it leaks. In production I'd
+> run this from a fixed-IP host and drop the wildcard.
 
-1. Go to **Database** → **Connect** on your cluster → **Drivers**.
-2. Copy the string. It looks like:
+### 5d. Build the connection string
+
+1. On your cluster: **Connect** → **Drivers** → **Node.js**.
+2. Copy the string Atlas shows. It looks like this — the exact placeholder name
+   varies (`<password>` or `<db_password>`), and a trailing `&appName=...` is
+   fine to keep:
 
    ```
-   mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+   mongodb+srv://<username>:<db_password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
    ```
 
-3. Replace `<username>` and `<password>` with the ones you just made, deleting
-   the angle brackets along with the placeholder text.
-
-   ⚠️ **If your password contains `@ : / ? # [ ] %` you must URL-encode it**, or
-   the connection string parses wrongly and you get a confusing auth error.
-   `@` becomes `%40`, `#` becomes `%23`, `%` becomes `%25`. Autogenerated
-   passwords sometimes contain these. The simplest fix is to regenerate the
-   password until it's alphanumeric.
-
+3. Replace the username and password placeholders with the ones from 5b,
+   **deleting the angle brackets** along with the placeholder text.
 4. Put it in `.env`:
 
    ```
-   MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+   MONGO_URI=mongodb+srv://tracker:REPLACE_WITH_YOUR_PASSWORD@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
    MONGO_DB=campaign_tracker
    ```
 
-You don't need to create the database or collection — the job creates them,
-along with the index, on first run.
+**About `MONGO_DB`:** that is a name you choose, not something Atlas gives you.
+Leave it as `campaign_tracker`. Note the connection string has no database name
+in it — the `/?` is correct, and the job uses `MONGO_DB` to pick the database.
+If you do leave a database name in the URI, `MONGO_DB` wins.
+
+You don't need to create the database, the collection, or the index. The job
+creates all three on its first run.
+
+### 5e. Check it
+
+```bash
+npm run check:env
+```
+
+That validates the string's shape offline — including the URL-encoding trap
+above and any leftover `<angle-brackets>` — without connecting to anything.
 
 ---
 
