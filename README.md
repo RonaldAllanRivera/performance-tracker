@@ -276,6 +276,26 @@ order:
    something changed upstream, not that ten creators deleted their videos.
 4. YouTube API error rate.
 
+### This repo is public
+
+Deliberately — it's a portfolio piece. Three things make that safe:
+
+- **No credential is committed.** `.env*` is gitignored with `.env.example` as
+  the single exception, as are service-account key files. Verified against the
+  real values: none of the cluster host, sheet id, API key, webhook id, or key
+  material appears anywhere in history.
+- **Secrets live in GitHub Actions secrets**, which GitHub redacts from workflow
+  logs and never exposes to builds from forked pull requests. The workflow only
+  triggers on `schedule` and `workflow_dispatch`, so untrusted code never runs
+  with them.
+- **The job logs identifiers truncated.** Public repo means public Actions logs.
+  Redaction relies on exact string matching and misses encoded forms, so the
+  sheet id is logged as its first six characters.
+
+Every credential is a single environment variable, which makes rotation routine
+rather than an emergency — the response to any suspected exposure is to reissue
+one value in two places.
+
 ### What would make me uncomfortable about shipping this today
 
 **Silent failure is indistinguishable from a quiet day.** If the cron breaks —

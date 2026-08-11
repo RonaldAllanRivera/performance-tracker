@@ -99,7 +99,11 @@ export async function readTrackedVideos(config: Config): Promise<TrackedVideoSet
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(config.sheetId)}` +
     `/values/${encodeURIComponent(RANGE)}?majorDimension=ROWS`;
 
-  log.info(`reading ${RANGE} from sheet ${config.sheetId}`);
+  // Truncated deliberately. This repo is public, so GitHub Actions logs are
+  // public too. GitHub does redact registered secrets from logs, but that
+  // relies on an exact string match -- it misses encoded or partial forms.
+  // Six characters is enough to tell two sheets apart and useless to anyone else.
+  log.info(`reading ${RANGE} from sheet ${config.sheetId.slice(0, 6)}…`);
   const response = await client.request<SheetsValuesResponse>({ url });
   const rows = response.data.values ?? [];
 
