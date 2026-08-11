@@ -340,7 +340,7 @@ own runner.
 5. Put it in `.env`:
 
    ```
-   MONGO_URI=mongodb+srv://YOUR_USER:YOUR_PASSWORD@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+   MONGO_URI=<the finished string from step 3, all on one line>
    MONGO_DB=campaign_tracker
    ```
 
