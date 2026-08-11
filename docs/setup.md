@@ -298,6 +298,11 @@ For GitHub Actions, add a second entry. Some versions of the dialog offer an
 - **Comment:** `GitHub Actions — runners have no fixed IP`
 - **Confirm**
 
+Atlas will warn that this "potentially allows access to all IPv4 addresses" —
+that is what you are asking for, and the tradeoff is spelled out below. The new
+row shows **Pending** for a minute or two while it propagates; connections
+attempted before it goes **Active** time out.
+
 > ⚠️ **Leave "This entry is temporary" switched off.** It deletes the entry
 > after a few hours. Local runs would keep working, and the scheduled job would
 > begin failing with a connection timeout days later with nothing to point at.
