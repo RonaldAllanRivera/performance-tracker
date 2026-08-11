@@ -45,9 +45,9 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -63,6 +63,12 @@ jobs:
         env:
           TIMEZONE: ${{ vars.TIMEZONE || 'Asia/Manila' }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
+          # Store this base64-encoded, not as raw JSON. GitHub masks each LINE
+          # of a multi-line secret separately, so a pretty-printed key file
+          # turns its "{" and "}" lines into masks and every brace in the log
+          # is replaced by *** -- including unrelated ones like `bash -e {0}`.
+          # A single-line base64 blob registers one mask and leaves logs
+          # readable. The job accepts either form; see src/inputs/sheet.ts.
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           MONGO_URI: ${{ secrets.MONGO_URI }}

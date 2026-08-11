@@ -513,10 +513,20 @@ re-running the same day updates rather than duplicates.
 
    - `SHEET_ID`, `YOUTUBE_API_KEY`, `MONGO_URI`, `DISCORD_WEBHOOK_URL` — the
      same values as in your `.env`.
-   - `GOOGLE_SERVICE_ACCOUNT_JSON` — **open the `.json` key file and paste the
-     whole thing**, newlines and all. GitHub accepts multi-line secrets, so no
-     encoding is needed. This is the CI counterpart of
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` — the CI counterpart of
      `GOOGLE_SERVICE_ACCOUNT_FILE`, which has no meaning on a runner.
+     **Paste it base64-encoded, on one line:**
+
+     ```bash
+     base64 -w0 ~/.config/campaign-tracker/service-account.json    # Linux
+     base64 ~/.config/campaign-tracker/service-account.json | tr -d '\n'   # either OS
+     ```
+
+     Raw multi-line JSON also works, but produces unreadable logs: GitHub masks
+     each *line* of a multi-line secret separately, so the lines that are just
+     `{` and `}` become masks and every brace anywhere in the run output is
+     replaced with `***` — even unrelated ones like `bash -e {0}`. One line of
+     base64 registers one mask and leaves the log legible.
    - `OPENAI_API_KEY` — optional. Without it the digest uses the template.
 
    GitHub secrets accept multi-line values, so the key needs no encoding — just
@@ -552,4 +562,5 @@ re-running the same day updates rather than duplicates.
 | No **Integrations** tab on the channel | You lack *Manage Webhooks* on that server. Create your own server (step 6b) and use a channel there. |
 | Report arrives but the footer says "template" | The OpenAI key is missing, invalid, or out of credit. Everything else is fine. |
 | Actions run fails with `Missing required environment variable(s)` while local runs work | The credentials were added under the **Variables** tab. The workflow reads `secrets.*` for all six, so a variable of the same name resolves to empty. Move them to **Secrets**, and delete the variable copies — variables are unencrypted and are not masked in logs. |
+| Braces replaced by `***` all over the Actions log | `GOOGLE_SERVICE_ACCOUNT_JSON` was stored as multi-line JSON. GitHub masks each line separately, including the `{` and `}` lines. Re-save it base64-encoded on one line. |
 | Scheduled run never fires | GitHub disables schedules in repos inactive for 60 days. Push a commit and re-enable in the Actions tab. |
