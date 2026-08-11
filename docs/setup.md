@@ -287,13 +287,25 @@ sidebar entry:
 3. On that page, select the **Network Access** tab.
 4. **+ ADD IP ADDRESS**.
 
-Then:
+Your current IP is already listed if you left *Automate security setup* ticked
+(commented "Created as part of the Auto Setup process"). That covers local runs.
 
-- Local testing: **ADD CURRENT IP ADDRESS** — already done for you if you left
-  *Automate security setup* ticked.
-- GitHub Actions: **ALLOW ACCESS FROM ANYWHERE**, which fills in `0.0.0.0/0`.
-  Runners have no fixed IPs, so there is no narrower option short of hosting
-  your own runner.
+For GitHub Actions, add a second entry. Some versions of the dialog offer an
+**ALLOW ACCESS FROM ANYWHERE** button; if yours doesn't, just type the value in
+— it is the same thing:
+
+- **Access List Entry:** `0.0.0.0/0`
+- **Comment:** `GitHub Actions — runners have no fixed IP`
+- **Confirm**
+
+> ⚠️ **Leave "This entry is temporary" switched off.** It deletes the entry
+> after a few hours. Local runs would keep working, and the scheduled job would
+> begin failing with a connection timeout days later with nothing to point at.
+> Do not build that failure mode into the database of a tool whose whole job is
+> to stop things failing quietly.
+
+Runners have no fixed IPs, so there is no narrower option short of hosting your
+own runner.
 
 > Know what you're accepting: the database is then reachable from any IP, and
 > the username and password are the only thing protecting it. Use the generated
