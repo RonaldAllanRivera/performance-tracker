@@ -18,14 +18,14 @@ const ENDPOINT = 'https://www.googleapis.com/youtube/v3/videos';
 const BATCH_SIZE = 50;
 const TIMEOUT_MS = 15_000;
 
-interface YouTubeItem {
+export interface YouTubeItem {
   id?: string;
   snippet?: { title?: string };
   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
   status?: { privacyStatus?: string };
 }
 
-interface YouTubeResponse {
+export interface YouTubeResponse {
   items?: YouTubeItem[];
   error?: { message?: string };
 }
@@ -79,6 +79,16 @@ async function fetchBatch(ids: string[], apiKey: string): Promise<VideoStats[]> 
     throw new Error(`HTTP ${response.status}: ${body.error?.message ?? response.statusText}`);
   }
 
+  return parseYouTubeResponse(ids, body);
+}
+
+/**
+ * Turn an API response into stats for every id we asked about.
+ *
+ * Pure and exported so the dry-run fixture source runs this exact code. A
+ * fixture that bypassed parsing would prove nothing about the parsing.
+ */
+export function parseYouTubeResponse(ids: string[], body: YouTubeResponse): VideoStats[] {
   const items = body.items ?? [];
   const byId = new Map(items.filter((item) => item.id).map((item) => [item.id as string, item]));
 
