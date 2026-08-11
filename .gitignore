@@ -1,6 +1,8 @@
 # --- Secrets: nothing below this line may ever be committed ---
-.env
-.env.*
+# Deliberately broad. `.env.*` only matches a DOT separator, so .env-sample,
+# .env_prod and .envrc all slipped through it. `.env*` catches every variant;
+# the template is the single explicit exception.
+.env*
 !.env.example
 
 # Google service-account keys. The job reads the JSON from an env var, so a key
