@@ -1,5 +1,5 @@
 import { analyzeVideo, buildReport } from './analyze.js';
-import { loadConfig, today, type Config } from './config.js';
+import { loadConfig, localTime, today, utcOffsetHours, type Config } from './config.js';
 import { writeDigest } from './digest.js';
 import { buildSeedSnapshots, createFixtureYouTubeSource, FIXTURE_SHEET_ROWS } from './fixtures/index.js';
 import { parseRows, readTrackedVideos, type TrackedVideoSet } from './inputs/sheet.js';
@@ -36,7 +36,12 @@ async function run(): Promise<void> {
   const config = loadConfig();
   const date = today();
 
-  log.info(`starting run for ${date}${config.dryRun ? ' (dry run — no credentials, no writes, no posting)' : ''}`);
+  const offset = utcOffsetHours(config.timezone);
+  log.info(
+    `starting run for ${date} — ${config.timezone} ` +
+      `(UTC${offset >= 0 ? '+' : ''}${offset}, local time ${localTime(config.timezone)})` +
+      `${config.dryRun ? ' — dry run: no credentials, no writes, no posting' : ''}`,
+  );
 
   const store = createStore(config, config.dryRun ? buildSeedSnapshots(date) : []);
   await store.init();

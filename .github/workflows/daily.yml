@@ -2,13 +2,34 @@ name: Daily campaign video report
 
 on:
   schedule:
-    # GitHub cron is always UTC. 01:00 UTC = 09:00 Asia/Manila, so the report
-    # is waiting when the team starts. The job derives its own dates in Manila
-    # time regardless of the runner clock -- see src/config.ts.
+    # ─────────────────────────────────────────────────────────────────────────
+    # CHANGING THE TIME THE REPORT ARRIVES
+    #
+    # This cron is ALWAYS in UTC and cannot be moved into .env or a secret:
+    # GitHub parses this block before any environment exists. The TIMEZONE in
+    # .env controls which calendar day a run is recorded against; this line
+    # controls when it fires. Keep the two consistent.
+    #
+    #   UTC hour = the local hour you want  -  that zone's UTC offset
+    #
+    #   Want          Zone                 Offset      cron
+    #   09:00         Asia/Manila          UTC+8       0 1 * * *   <-- current
+    #   07:00         Asia/Manila          UTC+8       0 23 * * *  (prev. UTC day)
+    #   09:00         Europe/Berlin        UTC+1/+2    0 8 * * *  / 0 7 * * *
+    #   09:00         America/New_York     UTC-5/-4    0 14 * * * / 0 13 * * *
+    #
+    # GitHub cron has no DST awareness, so zones that observe DST drift by an
+    # hour twice a year and need the line edited. Asia/Manila has no DST, which
+    # is one reason it is a clean default.
+    #
+    # Scheduled runs can also be delayed during GitHub peak load. This is a
+    # daily digest, so a few minutes' drift does not matter -- but do not rely
+    # on it firing to the second.
     #
     # NOTE: GitHub disables scheduled workflows in repositories that go quiet
     # for 60 days. If the digest stops arriving, check that before debugging
     # anything in this repo -- and see the "silent failure" note in the README.
+    # ─────────────────────────────────────────────────────────────────────────
     - cron: '0 1 * * *'
   workflow_dispatch: # lets anyone trigger a run by hand from the Actions tab
 
@@ -40,6 +61,7 @@ jobs:
       - name: Run the daily pipeline
         run: npm run job
         env:
+          TIMEZONE: ${{ vars.TIMEZONE || 'Asia/Manila' }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
