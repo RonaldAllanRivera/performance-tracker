@@ -495,8 +495,10 @@ re-running the same day updates rather than duplicates.
 2. **Settings → Secrets and variables → Actions → New repository secret.**
 3. Add one secret per value, using **exactly these names**:
 
-   The **Name** field accepts letters, digits and underscores only. Copy these
-   exactly — no backticks, no quotes, no spaces:
+   **Type the name by hand rather than pasting it.** The field accepts letters,
+   digits and underscores only, and a pasted trailing newline, leading space or
+   stray backtick fails with "Secret names can only contain alphanumeric
+   characters" — none of which are visible in the box. The names are short:
 
    ```
    SHEET_ID
