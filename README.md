@@ -1,8 +1,9 @@
 # Campaign Video Performance Tracker
 
-Every morning at 09:00 Manila time, this posts a plain-English summary of how
-every creator video in every live campaign performed yesterday — and flags the
-ones a human should actually look at — into Discord.
+Every morning at 09:00 Manila time — [both the time and the timezone are
+configurable](#scheduling) — this posts a plain-English summary of how every
+creator video in every live campaign performed yesterday, and flags the ones a
+human should actually look at, into Discord.
 
 ---
 
@@ -134,10 +135,12 @@ npm run typecheck
 
    Ops adds a row per video. Nothing else is required of them.
 
-2. **Set up credentials.** `cp .env.example .env` and fill it in —
-   [`.env.example`](.env.example) says where each one comes from and includes
-   the one setup step people always miss (sharing the sheet with the service
-   account's email).
+2. **Set up credentials.** `cp .env.example .env` and fill it in.
+   **[`docs/setup.md`](docs/setup.md) is a click-by-click walkthrough** of all
+   five, written for someone who has never opened Google Cloud or Atlas — it
+   covers the step everyone misses (sharing the sheet with the service account)
+   and has a troubleshooting table for the errors whose messages don't say what
+   is actually wrong.
 
 3. **Run it.**
 
@@ -147,13 +150,38 @@ npm run typecheck
 
 ### Scheduling
 
-[`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs it at 01:00
-UTC — 09:00 Manila — and can be triggered by hand from the Actions tab
-(`workflow_dispatch`). Secrets use the same names as `.env`. Logs are in the
-Actions run. A failed run exits non-zero and shows up red.
+There are **two separate knobs**, and it's worth knowing why they aren't one:
+
+| Knob | Where | Controls |
+|---|---|---|
+| `TIMEZONE` | `.env` | Which calendar day a run is recorded against, and the date on the report |
+| `cron` | [`.github/workflows/daily.yml`](.github/workflows/daily.yml) | What time the job actually fires |
+
+The firing time can't live in `.env`, because GitHub parses the `on: schedule:`
+block before any environment exists. The workflow file has a conversion table in
+its comments — the rule is `UTC hour = local hour − that zone's UTC offset`, so
+09:00 in Manila (UTC+8) is `0 1 * * *`.
+
+`TIMEZONE` accepts any IANA zone name and is validated at startup, so a typo
+fails immediately with an explanation instead of quietly filing every snapshot
+under the wrong day. The job logs which zone it resolved:
+
+```
+[job] starting run for 2026-08-11 — Asia/Manila (UTC+8, local time 09:00)
+```
+
+Runs can also be triggered by hand from the Actions tab (`workflow_dispatch`),
+which is how you test without waiting for tomorrow. Secrets use the same names
+as `.env`. A failed run exits non-zero and shows up red.
 
 Tests run before the pipeline in CI: it costs 400ms and means we never post
 numbers produced by broken logic.
+
+> Two caveats worth knowing: GitHub's cron has no DST awareness, so zones that
+> observe DST drift by an hour twice a year (Manila doesn't, which is one reason
+> it's a clean default); and scheduled runs can be delayed under GitHub load.
+> Neither matters for a daily digest, but don't build anything time-critical on
+> this scheduler.
 
 ---
 
@@ -262,6 +290,15 @@ seeing real campaign data. If they are badly calibrated, ops stops trusting the
 alerts within two weeks — and a distrusted alert is worse than no alert at all.
 
 ---
+
+## Also in this repo
+
+- **[`docs/setup.md`](docs/setup.md)** — click-by-click credential setup and a
+  troubleshooting table.
+- **[`docs/self-review.md`](docs/self-review.md)** — what's strong, what's weak,
+  the alternative I rejected, and what would worry me in production.
+- **[`docs/handover.md`](docs/handover.md)** — the message I'd post to the tech
+  channel.
 
 ## How AI was used
 
