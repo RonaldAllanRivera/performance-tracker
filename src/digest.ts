@@ -24,7 +24,12 @@ import type { Analysis, DigestedReport, Report } from './types.js';
 const log = logger('digest');
 
 const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
-const TIMEOUT_MS = 20_000;
+// 20s was enough locally and timed out from a GitHub runner. This is a daily
+// job, so latency does not matter -- being slow is free, being template-only
+// is not.
+const TIMEOUT_MS = 45_000;
+/** One retry, not a retry framework. A second failure means use the template. */
+const ATTEMPTS = 2;
 
 const SYSTEM_PROMPT = [
   'You write a short daily performance update for a marketing operations team at a creator agency.',
@@ -47,16 +52,24 @@ export async function writeDigest(report: Report, config: Config): Promise<Diges
     return { ...report, digest: template, digestSource: 'template' };
   }
 
-  try {
-    const text = await callModel(report, config);
-    log.info(`model digest written (${text.length} chars)`);
-    return { ...report, digest: text, digestSource: 'llm' };
-  } catch (error) {
-    // Never fatal. A digest that reads a bit flatter is infinitely better than
-    // no morning report, and the numbers are identical either way.
-    log.warn('model call failed, falling back to the template:', describe(error));
-    return { ...report, digest: template, digestSource: 'template' };
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    try {
+      const text = await callModel(report, config);
+      log.info(`model digest written (${text.length} chars)${attempt > 1 ? ` on attempt ${attempt}` : ''}`);
+      return { ...report, digest: text, digestSource: 'llm' };
+    } catch (error) {
+      const last = attempt === ATTEMPTS;
+      // Never fatal. A digest that reads a bit flatter is infinitely better
+      // than no morning report, and the numbers are identical either way.
+      log.warn(
+        `model call failed (attempt ${attempt}/${ATTEMPTS})${last ? ', using the template' : ', retrying'}:`,
+        describe(error),
+      );
+      if (last) return { ...report, digest: template, digestSource: 'template' };
+    }
   }
+
+  return { ...report, digest: template, digestSource: 'template' };
 }
 
 async function callModel(report: Report, config: Config): Promise<string> {
