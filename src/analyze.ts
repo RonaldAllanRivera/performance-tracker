@@ -44,7 +44,11 @@ export function analyzeVideo(
     url: video.url,
     campaign: video.campaign,
     creator: video.creator,
-    title: stats.title,
+    // Carry the last known title forward. A deleted video returns no title at
+    // all, and "(untitled) is no longer viewable" tells ops nothing about which
+    // video to go and look at -- the one case where the title matters most is
+    // the one case the API stops giving us one.
+    title: stats.title ?? previous?.title ?? null,
     status: stats.status,
     views: stats.views,
   };

@@ -287,3 +287,22 @@ describe('buildReport', () => {
     expect(report.flagged).toEqual([]);
   });
 });
+
+describe('identifying a video after it disappears', () => {
+  it('carries the last known title forward when the API stops returning one', () => {
+    // The one case where the title matters most -- "which video died?" -- is
+    // the one case the API gives us nothing to answer it with.
+    const gone = stats({ status: 'unavailable', title: null, views: null, likes: null, comments: null });
+    const { analysis, snapshot: written } = analyzeVideo(
+      video(),
+      gone,
+      snapshot({ title: 'Genshin 5.0 co-op night with the squad' }),
+      TODAY,
+      FETCHED_AT,
+    );
+
+    expect(analysis.title).toBe('Genshin 5.0 co-op night with the squad');
+    // Persisted too, so the title survives however many days it stays dead.
+    expect(written.title).toBe('Genshin 5.0 co-op night with the squad');
+  });
+});
