@@ -46,6 +46,14 @@ It is designed so that nothing in that chain can fail silently, and so that one
 broken video, one bad row, or one platform outage never costs you the rest of
 the report.
 
+### What it looks like
+
+![The daily report as it arrives in Discord](docs/discord-report.png)
+
+Anomalies first, then how each campaign did, then the individual movers, then
+anything in the sheet that needs fixing. The footer names which writer produced
+the summary, so a run of "template" is visible without needing metrics.
+
 ## Architecture
 
 ```mermaid
