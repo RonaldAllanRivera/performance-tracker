@@ -39,6 +39,11 @@ on:
     # anything in this repo -- and see the "silent failure" note in the README.
     # ─────────────────────────────────────────────────────────────────────────
     - cron: '35 0 * * *'
+    # TEMPORARY -- scheduler smoke test, remove after it fires or doesn't.
+    # The 01:00 UTC schedule never fired once, so "the cron is configured
+    # correctly" and "GitHub actually runs it" are separate claims and only
+    # the first can be checked by reading the file.
+    - cron: '46 3 * * *'
   workflow_dispatch: # lets anyone trigger a run by hand from the Actions tab
 
 concurrency:
