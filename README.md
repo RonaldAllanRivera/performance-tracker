@@ -2,8 +2,8 @@
 
 [![Daily campaign video report](https://github.com/RonaldAllanRivera/performance-tracker/actions/workflows/daily.yml/badge.svg)](https://github.com/RonaldAllanRivera/performance-tracker/actions/workflows/daily.yml)
 
-Every morning before 09:00 Manila time — [both the time and the timezone are
-configurable](#scheduling) — this posts a plain-English summary of how every
+Every morning before 09:00 Manila time — [subject to a caveat about GitHub's
+scheduler](#scheduling) — this posts a plain-English summary of how every
 creator video in every live campaign performed yesterday, and flags the ones a
 human should actually look at, into Discord.
 
@@ -204,12 +204,21 @@ as `.env`. A failed run exits non-zero and shows up red.
 Tests run before the pipeline in CI: it costs 400ms and means we never post
 numbers produced by broken logic.
 
-> Two caveats worth knowing. GitHub's cron has no DST awareness, so zones that
-> observe DST drift by an hour twice a year — Manila doesn't, which is one
-> reason it's a clean default. And scheduled runs are genuinely unreliable:
-> they are delayed under load and sometimes skipped without notice. Moving off
-> the hour improves the odds; only a heartbeat actually tells you when a run
-> was missed, which is why that leads the roadmap.
+> **GitHub's scheduler did not fire during development, and you should know
+> that before relying on it.** Two crons were configured on this repo and both
+> were skipped entirely — the second was still absent 56 minutes after it was
+> due — while every manual `workflow_dispatch` run succeeded. The workflow is
+> active, on the default branch, with a valid expression; GitHub documents
+> `schedule` as best-effort and deprioritises free-tier accounts.
+>
+> This is a platform property, not a configuration error, and it is the reason
+> "Productionizing" below names a systemd timer rather than treating hosting as
+> an afterthought. GitHub Actions is the right scheduler for a prototype —
+> nothing to provision — and the wrong one for a report a team depends on.
+>
+> Also worth knowing: GitHub's cron has no DST awareness, so zones observing
+> DST drift by an hour twice a year. Manila doesn't, which is one reason it's a
+> clean default.
 
 ---
 
@@ -293,6 +302,12 @@ contract. Everything else would have needed mocking into meaninglessness.
    hundred, worth fixing before a few thousand.
 
 ## Running this in production
+
+**Scheduling would move off GitHub Actions.** A `systemd` timer on the VPS with
+`OnCalendar=08:35` and `Persistent=true` fires reliably and, unlike a cron,
+catches up a run missed while the host was down. The job itself is a single
+command with no GitHub dependency, so this is a deployment change and not a
+rewrite — which is most of the reason it was built as one command.
 
 Secrets would move out of Actions into whatever the company already uses, and
 I'd add automated secret scanning to CI — a placeholder connection string in

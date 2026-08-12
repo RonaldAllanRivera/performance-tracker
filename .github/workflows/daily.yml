@@ -30,20 +30,26 @@ on:
     # deliberately early means a typical delay still lands the report before
     # 9am rather than after it.
     #
-    # This improves the odds; it does not make the schedule reliable. Nothing
-    # here tells you when a run is simply skipped -- see the heartbeat item in
-    # the README roadmap, which is the actual fix.
+    # MEASURED, NOT ASSUMED: as of 2026-08-12 this schedule had not fired once.
+    # Two separate crons were configured and both were skipped entirely -- the
+    # second was still absent 56 minutes after it was due -- while every
+    # workflow_dispatch run succeeded. The workflow is active, on the default
+    # branch, with a valid expression. GitHub's scheduler is best-effort and
+    # deprioritises free-tier accounts; skipped runs are a documented
+    # possibility, not a misconfiguration here.
+    #
+    # The design assumes a daily run and behaves correctly when one is missed:
+    # snapshots are idempotent, and analyze.ts suppresses rate-based flags
+    # across a multi-day gap rather than reporting three days of growth as a
+    # one-day spike. What it cannot do is notice that a run never happened.
+    # See "Productionizing" in the README -- a systemd timer with
+    # Persistent=true is the fix, and a heartbeat is what makes a miss visible.
     #
     # NOTE: GitHub disables scheduled workflows in repositories that go quiet
     # for 60 days. If the digest stops arriving, check that before debugging
     # anything in this repo -- and see the "silent failure" note in the README.
     # ─────────────────────────────────────────────────────────────────────────
     - cron: '35 0 * * *'
-    # TEMPORARY -- scheduler smoke test, remove after it fires or doesn't.
-    # The 01:00 UTC schedule never fired once, so "the cron is configured
-    # correctly" and "GitHub actually runs it" are separate claims and only
-    # the first can be checked by reading the file.
-    - cron: '46 3 * * *'
   workflow_dispatch: # lets anyone trigger a run by hand from the Actions tab
 
 concurrency:
