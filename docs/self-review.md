@@ -30,10 +30,11 @@ the same response parser as the live path — and prints the exact Discord paylo
 - **The thresholds are guesses.** I never saw real campaign data. They are
   isolated in `rules.ts` so they're cheap to change, but that isolates the
   problem rather than solving it.
-- **No retries.** A transient API blip means no snapshot for that video that
-  day. The gap is handled correctly downstream — rate-based flags are suppressed
-  across a multi-day gap rather than reporting three days of growth as a spike —
-  but the data is still missing.
+- **No retries on the data path.** A transient YouTube or Sheets blip means no
+  snapshot for that video that day. The gap is handled correctly downstream —
+  rate-based flags are suppressed across a multi-day gap rather than reporting
+  three days of growth as a spike — but the data is still missing. The digest
+  call does retry once (see below); the fetches do not, and should.
 - **Snapshot lookups are one query per video.** Fine at a few hundred videos,
   worth batching before a few thousand.
 - **MongoStore itself is untested.** The idempotency guarantee rests on the
@@ -76,6 +77,13 @@ whether the task is an integration.
 2. **The AI fallback rate.** The embed footer names the writer. If it says
    "template" for a week, model calls are failing and the report still arrives
    every morning looking perfectly fine.
+
+   This one earned its place on day one. The first scheduled CI run logged
+   `model call failed ... aborted due to timeout` and shipped the template
+   digest — a 20s timeout that was comfortable from my laptop and was not from
+   a GitHub runner in `westus`. Nothing broke, and without the footer naming
+   the writer I would not have noticed for weeks. Raised to 45s with one retry;
+   subsequent runs are model-written.
 3. Counts of unavailable / hidden / skipped rows per run. A jump means something
    changed upstream, not that ten creators deleted their videos overnight.
 4. YouTube API error rate and quota headroom.
