@@ -30,6 +30,18 @@ today's numbers, decides which changes are worth a human's attention, writes a
 short summary in plain English, and posts it to Discord — along with a list of
 anything in the sheet that needs fixing.
 
+**The report is exception-based, not a data dump.** It gives totals, a line per
+campaign, anything flagged, and the three biggest individual movers. It does not
+list every video every day: nine videos would be readable, two hundred would not,
+and the anomaly you need to act on would be buried in the middle of them. The
+full history lives in Mongo for anyone who wants to query it.
+
+**Why there is a database at all:** the YouTube API only ever reports *today's*
+number. It has no memory. "406,326,796 views" is not actionable; "+12,400 since
+yesterday" is. Every delta and every flag in this system is a comparison against
+a stored snapshot — without storage the tool degrades into a slow way of reading
+numbers you could see by opening the video.
+
 It is designed so that nothing in that chain can fail silently, and so that one
 broken video, one bad row, or one platform outage never costs you the rest of
 the report.

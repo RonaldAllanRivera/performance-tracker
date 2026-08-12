@@ -1,5 +1,7 @@
 import { RULES } from './rules.js';
-import type { Analysis, Flag, Report, Snapshot, TrackedVideo, VideoStats, Warning } from './types.js';
+import type {
+  Analysis, CampaignRollup, Flag, Report, Snapshot, TrackedVideo, VideoStats, Warning,
+} from './types.js';
 
 /**
  * The only part of this system that decides anything.
@@ -165,9 +167,34 @@ export function buildReport(date: string, analyses: Analysis[], warnings: Warnin
     analyses,
     warnings,
     totals: { videosTracked: analyses.length, totalViews, totalViewsDelta },
+    campaigns: rollUpByCampaign(analyses),
     topMovers,
     flagged: analyses.filter((a) => a.flags.length > 0),
   };
+}
+
+/**
+ * Group the day into campaigns, biggest movement first.
+ *
+ * Sorted by movement rather than by size on purpose: this is a *daily* report,
+ * so the campaign that did something today belongs at the top, not the one
+ * that happens to have the largest back catalogue. Total views breaks ties, so
+ * the order is stable on a day when nothing moved.
+ */
+function rollUpByCampaign(analyses: Analysis[]): CampaignRollup[] {
+  const byCampaign = new Map<string, CampaignRollup>();
+
+  for (const a of analyses) {
+    const row = byCampaign.get(a.campaign) ?? { campaign: a.campaign, videos: 0, views: 0, viewsDelta: 0 };
+    row.videos += 1;
+    // Unavailable and hidden-stats videos still count toward the campaign's
+    // video count -- they are being tracked -- but contribute no numbers.
+    row.views += a.views ?? 0;
+    row.viewsDelta += a.deltas?.views ?? 0;
+    byCampaign.set(a.campaign, row);
+  }
+
+  return [...byCampaign.values()].sort((a, b) => b.viewsDelta - a.viewsDelta || b.views - a.views);
 }
 
 function sum(values: (number | null)[]): number {

@@ -61,6 +61,22 @@ export function buildPayload(report: DigestedReport): DiscordPayload {
     });
   }
 
+  // Campaigns sit between "what's broken" and "what moved": anomalies are the
+  // only section anyone is obliged to read, but campaign totals are the thing
+  // ops came for.
+  if (report.campaigns.length > 0) {
+    fields.push({
+      name: '📊 By campaign',
+      value: clampList(
+        report.campaigns.map(
+          (c) =>
+            `• **${truncate(c.campaign, 40)}** — ${formatCount(c.views)} views, ` +
+            `${formatDelta(c.viewsDelta)} (${pluralise(c.videos, 'video')})`,
+        ),
+      ),
+    });
+  }
+
   if (topMovers.length > 0) {
     fields.push({
       name: '📈 Top movers',

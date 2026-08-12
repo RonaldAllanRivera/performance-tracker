@@ -306,3 +306,62 @@ describe('identifying a video after it disappears', () => {
     expect(written.title).toBe('Genshin 5.0 co-op night with the squad');
   });
 });
+
+describe('campaign rollup', () => {
+  const forCampaign = (id: string, campaign: string, now: number, before: number | null) =>
+    analyzeVideo(
+      video({ videoId: id, campaign }),
+      stats({ videoId: id, views: now }),
+      before === null ? null : snapshot({ videoId: id, campaign, views: before }),
+      TODAY,
+      FETCHED_AT,
+    ).analysis;
+
+  it('groups videos by campaign and sums their numbers', () => {
+    const report = buildReport(TODAY, [
+      forCampaign('a', 'Genshin Q3', 1000, 900),
+      forCampaign('b', 'Genshin Q3', 500, 400),
+      forCampaign('c', 'Govee', 200, 190),
+    ], []);
+
+    const genshin = report.campaigns.find((c) => c.campaign === 'Genshin Q3');
+    expect(genshin).toEqual({ campaign: 'Genshin Q3', videos: 2, views: 1500, viewsDelta: 200 });
+    expect(report.campaigns).toHaveLength(2);
+  });
+
+  it('orders by movement, not by size — this is a daily report', () => {
+    const report = buildReport(TODAY, [
+      // A huge back catalogue that barely moved.
+      forCampaign('big', 'Old Catalogue', 1_000_050, 1_000_000),
+      // A small campaign having a big day. This is the one ops needs to see.
+      forCampaign('hot', 'New Launch', 9_000, 1_000),
+    ], []);
+
+    expect(report.campaigns.map((c) => c.campaign)).toEqual(['New Launch', 'Old Catalogue']);
+  });
+
+  it('falls back to total views when nothing has moved', () => {
+    // Baseline day: every delta is zero, so order must still be deterministic.
+    const report = buildReport(TODAY, [
+      forCampaign('small', 'Small', 100, null),
+      forCampaign('large', 'Large', 9000, null),
+    ], []);
+
+    expect(report.campaigns.map((c) => c.campaign)).toEqual(['Large', 'Small']);
+  });
+
+  it('counts an unavailable video in the campaign but contributes no numbers', () => {
+    const gone = analyzeVideo(
+      video({ videoId: 'x', campaign: 'Genshin Q3' }),
+      stats({ videoId: 'x', status: 'unavailable', title: null, views: null, likes: null, comments: null }),
+      snapshot({ videoId: 'x', campaign: 'Genshin Q3' }),
+      TODAY,
+      FETCHED_AT,
+    ).analysis;
+
+    const report = buildReport(TODAY, [forCampaign('a', 'Genshin Q3', 1000, 900), gone], []);
+
+    // Two videos are being tracked; only one can contribute a number.
+    expect(report.campaigns[0]).toEqual({ campaign: 'Genshin Q3', videos: 2, views: 1000, viewsDelta: 100 });
+  });
+});

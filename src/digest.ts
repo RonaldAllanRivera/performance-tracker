@@ -38,7 +38,8 @@ const SYSTEM_PROMPT = [
   'Rules:',
   '- 3 to 5 sentences. No headings, no bullet points, no markdown, no emoji.',
   '- Use ONLY the numbers in the JSON you are given. Never calculate, estimate, or infer a figure that is not present.',
-  '- Order: anything flagged first, then the biggest movers, then the overall total.',
+  '- Order: anything flagged first, then how the campaigns did, then the biggest individual movers, then the overall total.',
+  '- Campaigns are what the reader cares about most. Name them.',
   '- If nothing is flagged, say so plainly in the first sentence and keep the whole thing to two or three sentences.',
   '- Refer to videos by title. Do not mention video IDs, URLs, field names, or JSON.',
   '- Plain declarative English. No hype, no "exciting news", no recommendations unless the data states one.',
@@ -127,6 +128,12 @@ function buildFacts(report: Report) {
     videosTracked: report.totals.videosTracked,
     totalViews: report.totals.totalViews,
     totalViewsGainedToday: report.totals.totalViewsDelta,
+    byCampaign: report.campaigns.map((c) => ({
+      campaign: c.campaign,
+      videos: c.videos,
+      views: c.views,
+      viewsGained: c.viewsDelta,
+    })),
     flagged: report.flagged.map(describeVideo),
     topMovers: report.topMovers.map(describeVideo),
     dataIssues: report.warnings.map((w) => w.message),
@@ -148,7 +155,7 @@ function describeFlags(a: Analysis): string | null {
  * dead code that rots until the day it is needed.
  */
 export function renderTemplateDigest(report: Report): string {
-  const { totals, flagged, topMovers } = report;
+  const { totals, flagged, topMovers, campaigns } = report;
 
   if (totals.videosTracked === 0) {
     return 'No videos are being tracked yet. Add creator video links to the tracking sheet and they will appear in tomorrow’s report.';
@@ -169,6 +176,16 @@ export function renderTemplateDigest(report: Report): string {
       .map((a) => `“${truncate(a.title ?? '(untitled video)', 50)}” ${describeFlags(a) ?? 'needs a look'}`)
       .join('; ');
     sentences.push(`${pluralise(flagged.length, 'video')} ${flagged.length === 1 ? 'needs' : 'need'} attention: ${details}.`);
+  }
+
+  // Only worth a sentence when something actually moved; on a baseline day
+  // every campaign is +0 and saying so adds nothing.
+  const leadCampaign = campaigns[0];
+  if (campaigns.length > 1 && leadCampaign && leadCampaign.viewsDelta > 0) {
+    sentences.push(
+      `${leadCampaign.campaign} moved most, ${formatDelta(leadCampaign.viewsDelta)} views across ` +
+        `${pluralise(leadCampaign.videos, 'video')}.`,
+    );
   }
 
   if (topMovers.length > 0) {

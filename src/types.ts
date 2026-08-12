@@ -113,6 +113,20 @@ export interface Warning {
   message: string;
 }
 
+/**
+ * One campaign's numbers for the day.
+ *
+ * Campaigns are the unit ops actually thinks in -- nobody runs "a video", they
+ * run a launch push across a dozen creators. This is also the only rollup that
+ * stays readable as the sheet grows: videos multiply, campaigns don't.
+ */
+export interface CampaignRollup {
+  campaign: string;
+  videos: number;
+  views: number;
+  viewsDelta: number;
+}
+
 /** Everything the digest writer and the notifier need. Fully computed, no I/O. */
 export interface Report {
   date: string;
@@ -123,6 +137,8 @@ export interface Report {
     totalViews: number;
     totalViewsDelta: number;
   };
+  /** Per-campaign totals, biggest movement first. */
+  campaigns: CampaignRollup[];
   /** Biggest absolute view gains this run, already sorted and truncated. */
   topMovers: Analysis[];
   flagged: Analysis[];
