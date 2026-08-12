@@ -292,7 +292,24 @@ contract. Everything else would have needed mocking into meaninglessness.
 
 ## What I would build next
 
-1. **A heartbeat.** The most important missing piece — see below.
+1. **A heartbeat**, and it is no longer hypothetical: the schedule has already
+   been skipped twice without a word (see [Scheduling](#scheduling)).
+
+   A dead man's switch, not a health check. The job pings a URL on success; an
+   external service alerts when the ping *doesn't* arrive within a grace window.
+   About five lines here — `fetch(HEARTBEAT_URL)` after the notifier, wrapped so
+   an unreachable monitor can never fail a run that otherwise worked — plus a
+   free healthchecks.io check pointed at the same Discord channel.
+
+   The detail that matters is where the watcher lives. Built as a second
+   workflow in this repo it would be skipped by the same scheduler it is meant
+   to be watching. Every failure this system reports today is a failure that
+   *happened* and produced something to catch; a run that never starts produces
+   nothing, because no code ran. Only something outside the system can notice
+   that silence.
+
+   Left out of this build deliberately: it is monitoring infrastructure, and the
+   brief asked for a prototype. It would be the first thing in, on day one.
 2. **TikTok ingestion**, almost certainly by buying a data provider rather than
    maintaining scrapers. At agency scale the cost is a rounding error against an
    engineer-day a month of unblocking them.
