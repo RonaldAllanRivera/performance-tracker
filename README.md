@@ -242,10 +242,18 @@ single `spreadsheets.values.get`.
    team, the Discord channel is internal, and the job runs in CI.
 4. **The sheet is the source of truth for what to track.** Deleting a row stops
    tracking; history for that video stays in Mongo.
-5. **View count is the primary metric.** Likes and comments are recorded and
+5. **Editing a row's campaign or creator applies from that day forward, not
+   retroactively.** The previous-snapshot lookup keys on `videoId` alone, so
+   changing metadata never disturbs the deltas — a typo fix cannot corrupt the
+   numbers. But past snapshots keep the attribution they had at the time,
+   because a snapshot records what was true on that day and rewriting it would
+   falsify the record. Each daily report is internally consistent since it only
+   uses that day's attribution; a renamed campaign would only look odd in
+   historical charts, which don't exist yet.
+6. **View count is the primary metric.** Likes and comments are recorded and
    reported, but anomaly detection keys on views. Creators can hide likes
    independently, so treating them as primary would produce phantom alerts.
-6. **The thresholds in `rules.ts` are starting guesses**, not calibrated against
+7. **The thresholds in `rules.ts` are starting guesses**, not calibrated against
    real campaign data. See the honesty note below.
 
 ## Questions I would have asked
