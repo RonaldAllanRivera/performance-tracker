@@ -13,7 +13,7 @@ on:
     #   UTC hour = the local hour you want  -  that zone's UTC offset
     #
     #   Want          Zone                 Offset      cron
-    #   09:00         Asia/Manila          UTC+8       0 1 * * *   <-- current
+    #   08:35         Asia/Manila          UTC+8       35 0 * * *  <-- current
     #   07:00         Asia/Manila          UTC+8       0 23 * * *  (prev. UTC day)
     #   09:00         Europe/Berlin        UTC+1/+2    0 8 * * *  / 0 7 * * *
     #   09:00         America/New_York     UTC-5/-4    0 14 * * * / 0 13 * * *
@@ -22,15 +22,23 @@ on:
     # hour twice a year and need the line edited. Asia/Manila has no DST, which
     # is one reason it is a clean default.
     #
-    # Scheduled runs can also be delayed during GitHub peak load. This is a
-    # daily digest, so a few minutes' drift does not matter -- but do not rely
-    # on it firing to the second.
+    # WHY 00:35 AND NOT 01:00. GitHub's scheduler is best-effort and is most
+    # congested on the hour -- 00:00 and 01:00 UTC especially, because that is
+    # where everyone points their daily jobs. Under load runs are delayed and
+    # can be skipped entirely. The first 01:00 schedule here never fired at
+    # all. An odd minute in a quieter slot avoids the stampede, and being
+    # deliberately early means a typical delay still lands the report before
+    # 9am rather than after it.
+    #
+    # This improves the odds; it does not make the schedule reliable. Nothing
+    # here tells you when a run is simply skipped -- see the heartbeat item in
+    # the README roadmap, which is the actual fix.
     #
     # NOTE: GitHub disables scheduled workflows in repositories that go quiet
     # for 60 days. If the digest stops arriving, check that before debugging
     # anything in this repo -- and see the "silent failure" note in the README.
     # ─────────────────────────────────────────────────────────────────────────
-    - cron: '0 1 * * *'
+    - cron: '35 0 * * *'
   workflow_dispatch: # lets anyone trigger a run by hand from the Actions tab
 
 concurrency:

@@ -95,8 +95,18 @@ if GitHub disables the schedule, which it does for repositories that go quiet fo
 60 days — nobody finds out, because a missing digest looks exactly like a morning
 with no news. The system has no heartbeat, and the watcher has no watcher. The
 failure mode of a daily report is not that it says something wrong; it's that it
-stops saying anything and everyone assumes things are fine. This is the first
-thing I would fix, and it is the thing I would be nervous about on day one.
+stops saying anything and everyone assumes things are fine.
+
+I did not have to imagine this one. **The first scheduled run never fired.**
+GitHub's cron is best-effort and 01:00 UTC is its most congested slot, so the
+job was simply skipped — no error, no red run, no notification, badge still
+green from the previous manual run. I only noticed because I went looking. That
+is precisely the failure I described above, it happened on day one, and nothing
+in the system would have told me.
+
+I have moved the schedule to an odd minute in a quieter slot, which improves the
+odds and fixes nothing fundamental. The real fix is a heartbeat that alerts on
+the *absence* of a run, and it is the first thing I would build next.
 
 **Nothing validates the AI's prose against the numbers.** The template fallback
 protects against the model being unavailable, not against it being wrong. Ops may

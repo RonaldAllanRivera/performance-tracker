@@ -2,7 +2,7 @@
 
 [![Daily campaign video report](https://github.com/RonaldAllanRivera/performance-tracker/actions/workflows/daily.yml/badge.svg)](https://github.com/RonaldAllanRivera/performance-tracker/actions/workflows/daily.yml)
 
-Every morning at 09:00 Manila time — [both the time and the timezone are
+Every morning before 09:00 Manila time — [both the time and the timezone are
 configurable](#scheduling) — this posts a plain-English summary of how every
 creator video in every live campaign performed yesterday, and flags the ones a
 human should actually look at, into Discord.
@@ -48,7 +48,7 @@ the report.
 
 ### What it looks like
 
-![The daily report as it arrives in Discord](docs/discord-report.png)
+![The daily report as it arrives in Discord](docs/discord-report.jpg)
 
 Anomalies first, then how each campaign did, then the individual movers, then
 anything in the sheet that needs fixing. The footer names which writer produced
@@ -181,8 +181,13 @@ There are **two separate knobs**, and it's worth knowing why they aren't one:
 
 The firing time can't live in `.env`, because GitHub parses the `on: schedule:`
 block before any environment exists. The workflow file has a conversion table in
-its comments — the rule is `UTC hour = local hour − that zone's UTC offset`, so
-09:00 in Manila (UTC+8) is `0 1 * * *`.
+its comments — the rule is `UTC hour = local hour − that zone's UTC offset`.
+
+It is set to `35 0 * * *` — 08:35 Manila — rather than a round 09:00, and that
+is deliberate. GitHub's scheduler is best-effort and most congested on the hour;
+the first run scheduled for 01:00 UTC never fired at all. An odd minute in a
+quieter slot avoids the stampede, and starting early means a typical delay still
+lands the report before 9am instead of after it.
 
 `TIMEZONE` accepts any IANA zone name and is validated at startup, so a typo
 fails immediately with an explanation instead of quietly filing every snapshot
@@ -199,11 +204,12 @@ as `.env`. A failed run exits non-zero and shows up red.
 Tests run before the pipeline in CI: it costs 400ms and means we never post
 numbers produced by broken logic.
 
-> Two caveats worth knowing: GitHub's cron has no DST awareness, so zones that
-> observe DST drift by an hour twice a year (Manila doesn't, which is one reason
-> it's a clean default); and scheduled runs can be delayed under GitHub load.
-> Neither matters for a daily digest, but don't build anything time-critical on
-> this scheduler.
+> Two caveats worth knowing. GitHub's cron has no DST awareness, so zones that
+> observe DST drift by an hour twice a year — Manila doesn't, which is one
+> reason it's a clean default. And scheduled runs are genuinely unreliable:
+> they are delayed under load and sometimes skipped without notice. Moving off
+> the hour improves the odds; only a heartbeat actually tells you when a run
+> was missed, which is why that leads the roadmap.
 
 ---
 
