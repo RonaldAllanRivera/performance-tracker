@@ -303,8 +303,13 @@ Deliberately — it's a portfolio piece. Three things make that safe:
   material appears anywhere in history.
 - **Secrets live in GitHub Actions secrets**, which GitHub redacts from workflow
   logs and never exposes to builds from forked pull requests. The workflow only
-  triggers on `schedule` and `workflow_dispatch`, so untrusted code never runs
-  with them.
+  triggers on `schedule` and `workflow_dispatch` — no `pull_request_target`, no
+  `workflow_run` — so code from outside the repo never runs with them.
+- **Secrets are scoped to the one step that needs them.** `npm ci` and `npm test`
+  run without any credentials in their environment, so a compromised dependency's
+  install script has nothing to find. Only `npm run job` gets them.
+- **Review access is read-only.** A collaborator with write access could push a
+  workflow that prints every secret to a public log; a reader cannot.
 - **The job logs identifiers truncated.** Public repo means public Actions logs.
   Redaction relies on exact string matching and misses encoded forms, so the
   sheet id is logged as its first six characters.
