@@ -129,6 +129,10 @@ The repo ships a ready-made template: **[`docs/Tracked.csv`](Tracked.csv)**.
    videos. Ops adds one row per video from here on; nothing else is asked of
    them.
 
+   Paste links however you like. Google sometimes converts a pasted URL into a
+   link that *displays* the video's title instead of the address — the job reads
+   the underlying link, so those rows still track correctly.
+
 6. Copy **your** sheet's ID out of the browser address bar. In this example URL
 
    ```

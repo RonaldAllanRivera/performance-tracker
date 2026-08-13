@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseVideoUrl } from '../src/inputs/urls.js';
-import { parseRows } from '../src/inputs/sheet.js';
+import { flattenRow, parseRows } from '../src/inputs/sheet.js';
 
 /**
  * The second module with tests, and the reason is the same as analyze.ts:
@@ -117,5 +117,42 @@ describe('parseRows', () => {
     expect(videos).toHaveLength(1);
     expect(videos[0]?.campaign).toBe('(no campaign)');
     expect(videos[0]?.creator).toBe('(unknown creator)');
+  });
+});
+
+describe('flattenRow: Google Sheets smart chips', () => {
+  it('prefers the hyperlink when the cell displays a title instead of a URL', () => {
+    // Exactly what Sheets produces when a link is pasted with Ctrl+V: the
+    // visible text becomes the page title and the URL survives only as link
+    // metadata. Four rows silently stopped being tracked because of this.
+    const row = flattenRow([
+      { formattedValue: 'Govee Lights Don’t Fall Off (Here’s Why)', hyperlink: 'https://www.youtube.com/watch?v=Il5LW1Tb1II' },
+      { formattedValue: 'Govee Smart Home' },
+      { formattedValue: 'DIY Inspired' },
+    ]);
+
+    expect(row[0]).toBe('https://www.youtube.com/watch?v=Il5LW1Tb1II');
+    expect(parseVideoUrl(row[0]!).ok).toBe(true);
+  });
+
+  it('uses the visible text when the cell is a plain typed URL', () => {
+    const row = flattenRow([{ formattedValue: 'https://youtu.be/dQw4w9WgXcQ' }]);
+    expect(row[0]).toBe('https://youtu.be/dQw4w9WgXcQ');
+  });
+
+  it('only trusts the hyperlink in the URL column', () => {
+    // A campaign name that happens to be linked must stay a campaign name,
+    // not silently become a URL.
+    const row = flattenRow([
+      { formattedValue: 'https://youtu.be/dQw4w9WgXcQ', hyperlink: 'https://youtu.be/dQw4w9WgXcQ' },
+      { formattedValue: 'Govee Q3', hyperlink: 'https://example.com/brief' },
+    ]);
+
+    expect(row[1]).toBe('Govee Q3');
+  });
+
+  it('survives empty and missing cells', () => {
+    expect(flattenRow([])).toEqual([]);
+    expect(flattenRow([{}, { formattedValue: '' }])).toEqual(['', '']);
   });
 });

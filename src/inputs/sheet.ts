@@ -24,6 +24,8 @@ const log = logger('sheet');
 
 /** Columns: A video_url | B campaign | C creator | D added_by | E notes */
 const RANGE = 'Tracked!A2:E';
+/** Column A. The only column where a cell's hyperlink beats its text. */
+const URL_COLUMN = 0;
 const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly';
 
 export interface TrackedVideoSet {
@@ -31,8 +33,16 @@ export interface TrackedVideoSet {
   warnings: Warning[];
 }
 
-interface SheetsValuesResponse {
-  values?: string[][];
+interface GridCell {
+  formattedValue?: string;
+  /** Set when the cell is a link. Google Sheets turns a pasted URL into a
+   *  "smart chip" whose visible text is the page title, so this is often the
+   *  only place the actual URL survives. */
+  hyperlink?: string;
+}
+
+interface GridResponse {
+  sheets?: Array<{ data?: Array<{ rowData?: Array<{ values?: GridCell[] }> }> }>;
 }
 
 /**
@@ -92,20 +102,44 @@ export function parseRows(rows: string[][]): TrackedVideoSet {
   return { videos, warnings };
 }
 
+/**
+ * Flatten one grid row to plain strings, preferring a cell's hyperlink over its
+ * visible text in the URL column.
+ *
+ * WHY THIS EXISTS. Paste a YouTube link into Sheets and Google may silently
+ * convert it to a smart chip: the cell then *displays* the video's title and
+ * keeps the URL only as link metadata. The plain values API returns the title,
+ * so the row reads as "not a URL" and the video stops being tracked -- while
+ * looking completely fine to the person who pasted it. Observed on a real
+ * sheet: four rows dropped out overnight with nobody having edited them.
+ *
+ * The link is authoritative when present. Ops should not have to know that
+ * Ctrl+Shift+V behaves differently from Ctrl+V.
+ */
+export function flattenRow(cells: GridCell[]): string[] {
+  return cells.map((cell, column) =>
+    column === URL_COLUMN && cell.hyperlink ? cell.hyperlink : (cell.formattedValue ?? ''),
+  );
+}
+
 /** Fetch and parse the tracking sheet. */
 export async function readTrackedVideos(config: Config): Promise<TrackedVideoSet> {
   const client = buildClient(config);
+  // Grid data rather than plain values: we need each cell's hyperlink, which
+  // the values endpoint does not return. Still a single request.
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(config.sheetId)}` +
-    `/values/${encodeURIComponent(RANGE)}?majorDimension=ROWS`;
+    `?ranges=${encodeURIComponent(RANGE)}&includeGridData=true` +
+    `&fields=${encodeURIComponent('sheets.data.rowData.values(formattedValue,hyperlink)')}`;
 
   // Truncated deliberately. This repo is public, so GitHub Actions logs are
   // public too. GitHub does redact registered secrets from logs, but that
   // relies on an exact string match -- it misses encoded or partial forms.
   // Six characters is enough to tell two sheets apart and useless to anyone else.
   log.info(`reading ${RANGE} from sheet ${config.sheetId.slice(0, 6)}…`);
-  const response = await client.request<SheetsValuesResponse>({ url });
-  const rows = response.data.values ?? [];
+  const response = await client.request<GridResponse>({ url });
+  const rowData = response.data.sheets?.[0]?.data?.[0]?.rowData ?? [];
+  const rows = rowData.map((row) => flattenRow(row.values ?? []));
 
   const result = parseRows(rows);
   log.info(`${rows.length} row(s) read, ${result.videos.length} tracked, ${result.warnings.length} warning(s)`);
