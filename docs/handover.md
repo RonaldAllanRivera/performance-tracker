@@ -4,12 +4,18 @@
 
 ---
 
-hey 👋 finished the campaign video tracker — repo is `performance-tracker`
+hey 👋 finished the campaign video tracker
 
-**what it does:** every morning it reads the tracking sheet ops keeps, pulls the
-view counts for each video from YouTube, compares them to yesterday, saves
-today's numbers, and posts a short summary to #campaign-reports. runs by itself
-on GitHub Actions.
+repo: https://github.com/RonaldAllanRivera/performance-tracker
+the sheet it reads: https://docs.google.com/spreadsheets/d/1PcktR73Hsn8p6Rw1gMEEBXNQweVy9aAFd-74cHqAJaM/edit?usp=sharing
+
+**what it does:** every morning it reads that tracking sheet, pulls the view
+counts for each video from YouTube, compares them to yesterday, saves today's
+numbers, and posts a short summary to #campaign-reports. runs by itself on
+GitHub Actions.
+
+the sheet is the only thing ops touches — one row per video, and the notes
+column says what each row is there to exercise if you're poking at it.
 
 **quickest way to see it:** clone it and run
 
