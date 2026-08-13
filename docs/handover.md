@@ -49,8 +49,9 @@ that file — don't go digging through the AI prompt.
 - **no retries** — if YouTube times out, that video just has no data for the day.
 - **no heartbeat** — this is the one that bothers me. if the scheduled job stops
   running, nobody finds out, because a missing report looks exactly like a quiet
-  morning. it already skipped runs twice while I was building it. next on my
-  list.
+  morning. while I was building it GitHub skipped two scheduled runs entirely
+  and then delivered the third 2.5 hours late, so this isn't hypothetical. next
+  on my list.
 
 **if a report looks off:** check the small text at the bottom of the Discord
 message. it says whether the summary was written by the AI or by the backup
