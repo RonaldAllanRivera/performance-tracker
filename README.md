@@ -185,9 +185,9 @@ its comments — the rule is `UTC hour = local hour − that zone's UTC offset`.
 
 It is set to `35 0 * * *` — 08:35 Manila — rather than a round 09:00, and that
 is deliberate. GitHub's scheduler is best-effort and most congested on the hour;
-the first run scheduled for 01:00 UTC never fired at all. An odd minute in a
-quieter slot avoids the stampede, and starting early means a typical delay still
-lands the report before 9am instead of after it.
+the first two crons here never fired at all, and the third arrived 2h36m late.
+An odd minute in a quieter slot and an early start both help; neither makes the
+delivery time dependable. See the caveat below.
 
 `TIMEZONE` accepts any IANA zone name and is validated at startup, so a typo
 fails immediately with an explanation instead of quietly filing every snapshot
@@ -204,12 +204,18 @@ as `.env`. A failed run exits non-zero and shows up red.
 Tests run before the pipeline in CI: it costs 400ms and means we never post
 numbers produced by broken logic.
 
-> **GitHub's scheduler did not fire during development, and you should know
-> that before relying on it.** Two crons were configured on this repo and both
-> were skipped entirely — the second was still absent 56 minutes after it was
-> due — while every manual `workflow_dispatch` run succeeded. The workflow is
-> active, on the default branch, with a valid expression; GitHub documents
-> `schedule` as best-effort and deprioritises free-tier accounts.
+> **GitHub's scheduler is too imprecise for a time-specific commitment, and you
+> should know that before relying on it.** Measured on this repo: the first two
+> crons were skipped entirely — the second was still absent 56 minutes after it
+> was due — and the third fired **2 hours 36 minutes late**. A digest scheduled
+> for 08:35 arrived at 11:11, by which time the team it is written for has been
+> working for two hours. Every manual `workflow_dispatch` run in the same period
+> completed in under 25 seconds.
+>
+> Nothing is misconfigured: the workflow is active, on the default branch, with
+> a valid expression. GitHub documents `schedule` as best-effort and
+> deprioritises free-tier accounts. "Runs daily" is true; "arrives before 9am"
+> is not something this scheduler can promise.
 >
 > This is a platform property, not a configuration error, and it is the reason
 > "Productionizing" below names a systemd timer rather than treating hosting as

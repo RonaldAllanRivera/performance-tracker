@@ -30,13 +30,16 @@ on:
     # deliberately early means a typical delay still lands the report before
     # 9am rather than after it.
     #
-    # MEASURED, NOT ASSUMED: as of 2026-08-12 this schedule had not fired once.
-    # Two separate crons were configured and both were skipped entirely -- the
-    # second was still absent 56 minutes after it was due -- while every
-    # workflow_dispatch run succeeded. The workflow is active, on the default
-    # branch, with a valid expression. GitHub's scheduler is best-effort and
-    # deprioritises free-tier accounts; skipped runs are a documented
-    # possibility, not a misconfiguration here.
+    # MEASURED, NOT ASSUMED. Two crons on this repo were skipped entirely (the
+    # second still absent 56 minutes after it was due) and the third fired
+    # 2h36m late -- 00:35 scheduled, 03:11 actual. Meanwhile every
+    # workflow_dispatch run completed in under 25 seconds. Nothing is
+    # misconfigured: the workflow is active, on the default branch, with a
+    # valid expression. GitHub documents schedule as best-effort and
+    # deprioritises free-tier accounts.
+    #
+    # So this line sets roughly when the job runs, not when the report lands.
+    # If arrival time matters, this is the wrong scheduler.
     #
     # The design assumes a daily run and behaves correctly when one is missed:
     # snapshots are idempotent, and analyze.ts suppresses rate-based flags

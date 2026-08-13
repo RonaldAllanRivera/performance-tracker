@@ -97,16 +97,34 @@ with no news. The system has no heartbeat, and the watcher has no watcher. The
 failure mode of a daily report is not that it says something wrong; it's that it
 stops saying anything and everyone assumes things are fine.
 
-I did not have to imagine this one. **The first scheduled run never fired.**
-GitHub's cron is best-effort and 01:00 UTC is its most congested slot, so the
-job was simply skipped — no error, no red run, no notification, badge still
-green from the previous manual run. I only noticed because I went looking. That
-is precisely the failure I described above, it happened on day one, and nothing
-in the system would have told me.
+I did not have to imagine this one, and my answer changed twice while I watched
+it.
 
-I have moved the schedule to an odd minute in a quieter slot, which improves the
-odds and fixes nothing fundamental. The real fix is a heartbeat that alerts on
-the *absence* of a run, and it is the first thing I would build next.
+**The first scheduled run never fired.** No error, no red run, no notification,
+badge still green from the previous manual run — I only noticed because I went
+looking. That is exactly the failure described above, on day one, and nothing in
+the system would have told me. I assumed congestion, since 01:00 UTC is GitHub's
+busiest slot, and moved the schedule to an odd minute in a quieter one. To test
+that without waiting a day I added a second temporary cron half an hour out. It
+was skipped too, still absent 56 minutes after it was due. At that point I wrote
+that the scheduler simply did not run this job.
+
+**Then the next morning it did — 2 hours and 36 minutes late.** A digest
+scheduled for 08:35 landed at 11:11.
+
+That is the more useful finding, and I would not have reached it by reasoning.
+The scheduler is neither broken nor dependable: it runs the job eventually, on
+its own timetable, and a report meant to be read with morning coffee is worth
+much less at lunchtime. Every `workflow_dispatch` run in the same period
+finished in under 25 seconds, so nothing here is misconfigured — GitHub
+documents `schedule` as best-effort and deprioritises free-tier accounts.
+"Runs once a day" is a promise this can keep; "arrives before 9am" is not.
+
+Two things follow. Production wants a `systemd` timer with `Persistent=true`,
+which fires on time and catches up a run missed while the host was down. And a
+heartbeat that alerts on the *absence* of a run is still the first thing I would
+build — no longer as a precaution, but because the failure it guards against has
+now happened three times in three days.
 
 **Nothing validates the AI's prose against the numbers.** The template fallback
 protects against the model being unavailable, not against it being wrong. Ops may
