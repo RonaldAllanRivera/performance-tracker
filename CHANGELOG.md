@@ -1,6 +1,6 @@
 # Changelog
 
-Three days, 56 commits. Grouped by day rather than by version — there are no
+Three days of work, grouped by day rather than by version — there are no
 releases yet, and the useful thing to see is how the build actually went.
 
 The entries that matter most are under **Learned**: several assumptions in the
