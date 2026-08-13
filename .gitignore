@@ -14,6 +14,10 @@ gcp-*.json
 credentials.json
 *.pem
 
+# Working copy of the Google Form answers. The submitted version lives in
+# docs/self-review.md; this one is formatted for pasting box by box.
+FORM-ANSWERS.md
+
 # --- Private working documents (not part of the submission) ---
 # The job ad, the technical challenge brief, and my internal build plan.
 # This repo is shared with the reviewer; these do not belong in it.
