@@ -6,7 +6,7 @@
 
 **1. The AI never touches a number.**
 
-All the maths happens in `analyze.ts` in plain functions with unit tests. The AI
+All the maths happens in `src/analyze.ts` in plain functions with unit tests. The AI
 only turns the finished numbers into sentences.
 
 *Example:* the report says "Genshin Impact Q3 gained 15,679 views". My code
@@ -16,12 +16,14 @@ out with exactly the same numbers — it just reads a bit flatter.
 
 **2. The alerts are tuned so people will actually read them.**
 
-*Example:* one video in my sheet went from 51 views to 55. That's +7.8%, which
-is over my 50% "spike" threshold. But it's only 4 extra views, so it does not
-alert. My first version would have alerted, because it only looked at
-percentages. Same with "stalled" — my first version alerted on every finished
-video every single morning, forever. Now it only alerts on the day a video stops
-growing.
+*Example:* a video going from 4 views to 7 is +75%, comfortably over my 50%
+"spike" threshold — but it's only 3 extra views. My first version alerted on
+exactly this, because it only looked at percentages. Now a spike also has to
+clear 100 actual views, so it stays quiet. There's a test in
+`tests/analyze.test.ts` that asserts the alert does *not* fire.
+
+Same with "stalled" — my first version alerted on every finished video every
+single morning, forever. Now it only alerts on the day a video stops growing.
 
 **3. Problems show up in the report, not in a log file nobody opens.**
 
@@ -43,7 +45,7 @@ minutes is not going to sign up for four services first.
 ## What's weak
 
 **The alert thresholds are guesses.** I picked "+50% and at least 100 views"
-without ever seeing real campaign data. They're all in one file (`rules.ts`) so
+without ever seeing real campaign data. They're all in one file (`src/rules.ts`) so
 they're easy to change, but easy to change is not the same as correct.
 
 **No retries when fetching data.** If YouTube times out, that video gets no
