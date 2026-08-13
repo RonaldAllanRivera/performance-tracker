@@ -82,18 +82,25 @@ makes that message better, but none of it matters if the message doesn't arrive.
 
 ## One alternative I seriously considered
 
-**Building it in n8n instead of writing code.** Content Lab clearly uses workflow
-automation tools, I'd have had something working faster, and ops could have
-edited it without me.
+**Building it in Make.com instead of writing code.** I looked at Zapier too.
+
+Content Lab clearly uses workflow automation, I'd have had something working
+faster, and ops could have edited it without me. Make could genuinely do this
+job — it has scheduling, HTTP modules for the YouTube API, and data stores to
+keep yesterday's numbers so today's can be compared against them. Its scheduler
+is also more dependable than GitHub Actions, which I found out the hard way when
+mine skipped runs.
 
 I chose code because the important part here is the alert logic, and I want that
 tested. If I tune a threshold in a visual editor, there's no record of what I
-changed or why. Six months later nobody can answer "why did it alert on that?"
+changed or why — six months later nobody can answer "why did it alert on that?"
+Both alert rules I got wrong on the first attempt were caught by tests, and
+those tests still sit there stopping anyone reintroducing the same mistake.
 
-**When I'd choose n8n instead:** if there were no logic — for example "new
-Typeform response → create a Notion page → post to Slack" — n8n wins and I
-wouldn't write code at all. The question I ask is whether there's a rule worth
-testing.
+**When I'd choose Make instead:** if there were no logic — for example "new
+Typeform response → create a Notion page → post to Slack" — Make or Zapier wins
+and I wouldn't write code at all. The question I ask is whether there's a rule
+worth testing.
 
 ## What I'd monitor first
 
