@@ -46,6 +46,14 @@ It is designed so that nothing in that chain can fail silently, and so that one
 broken video, one bad row, or one platform outage never costs you the rest of
 the report.
 
+### The input surface
+
+Ops maintains one spreadsheet. **[The live tracking sheet is viewable here](https://docs.google.com/spreadsheets/d/1PcktR73Hsn8p6Rw1gMEEBXNQweVy9aAFd-74cHqAJaM/edit?usp=sharing)** —
+every row's `notes` column says which code path that row exercises, so it doubles
+as a tour of the validation: a `/shorts/` URL, a link with a `&t=` timestamp, a
+TikTok link reported as pending, a deleted video, the same video twice in two URL
+forms, an unsupported site, and a blank row.
+
 ### What it looks like
 
 ![The daily report as it arrives in Discord](docs/discord-report.jpg)
@@ -400,6 +408,9 @@ alerts within two weeks — and a distrusted alert is worse than no alert at all
 
 ## Also in this repo
 
+- **[`CHANGELOG.md`](CHANGELOG.md)** — three days of build, grouped by day. The
+  "Learned" entries are the interesting ones: several design assumptions turned
+  out to be wrong once a real scheduler and a real spreadsheet were involved.
 - **[`docs/setup.md`](docs/setup.md)** — click-by-click credential setup and a
   troubleshooting table.
 - **[`docs/self-review.md`](docs/self-review.md)** — what's strong, what's weak,
