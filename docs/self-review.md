@@ -145,7 +145,8 @@ didn't run either, and was still missing 56 minutes after it should have. At
 that point I wrote in this document that GitHub simply wasn't running the job.
 
 Day 3: it ran — **2 hours and 36 minutes late.** Scheduled for 08:35, arrived at
-11:11.
+11:11. It has fired every day since and has never been on time: 1h23m, 2h33m and
+2h36m late across three runs. So this is a pattern, not a bad morning.
 
 So my first explanation was wrong, and I only found that out by watching it. The
 real answer is that GitHub's scheduler isn't broken, it's just not punctual. It

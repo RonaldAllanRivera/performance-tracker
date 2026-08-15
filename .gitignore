@@ -18,6 +18,10 @@ credentials.json
 # docs/self-review.md; this one is formatted for pasting box by box.
 FORM-ANSWERS.md
 
+# Prep for the live review. Notes to myself, not part of the submission.
+DEMO-SCRIPT.md
+INTERVIEW-QA.md
+
 # --- Private working documents (not part of the submission) ---
 # The job ad, the technical challenge brief, and my internal build plan.
 # This repo is shared with the reviewer; these do not belong in it.
